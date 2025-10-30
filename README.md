@@ -1,6 +1,6 @@
 # Orbital Contact Analyzer
 
-![Screenshot of the Orbital Contact Analyzer application](https://i.imgur.com/gK2fF4J.png)
+![Image](https://github.com/user-attachments/assets/4912f8a8-bda7-45f5-b553-202cbc485017)
 
 A single-file, offline web application for simulating two Earth satellites and a ground station. The application renders 2D/3D views, visualizes sensor footprints, and computes satellite-to-satellite line-of-sight (LOS) and satellite-to-ground-station access intervals.
 

@@ -1,0 +1,219 @@
+<!--
+    User Manual: Orbital Contact Analyzer
+
+    Copyright (c) 2025 [Your Full Name]
+
+    This document is licensed under the same terms as the software it describes.
+    Refer to the MIT License in the project repository for details.
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Manual: Orbital Contact Analyzer</title>
+  <link rel="stylesheet" href="https://stackedit.io/style.css" />
+</head>
+
+<body class="stackedit">
+  <div class="stackedit__html"><h1 id="orbital-contact-analyzer-—-user-manual">Orbital Contact Analyzer — User Manual</h1>
+<p><strong>Version:</strong>v1.0.0<br>
+<strong>Scope:</strong> Single‑file, offline HTML app for simulating two Earth satellites and a ground station. The application uses a J2 perturbation model, renders 2D/3D views, visualizes sensor footprints and local horizons, and computes both satellite‑to‑satellite line‑of‑sight (LOS) and satellite‑to‑ground-station access intervals.</p>
+<hr>
+<h2 id="overview">1) Overview</h2>
+<p>This app propagates two satellites using a model that includes J2 secular perturbations, converts positions between ECI and ECEF frames, and visualizes:</p>
+<ul>
+<li><strong>2D Map</strong> (equirectangular) with ground tracks, current markers, optional sensor footprints (FOV), optional local horizons, and communication links.</li>
+<li><strong>3D Globe</strong> (WebGL) with full camera control, physically correct inertial and Earth-fixed views, a full-screen “Focus Mode”, and an optional Head-Up Display (HUD) showing live orbital elements.</li>
+<li><strong>Data Tables</strong> for both Inter-Satellite LOS and Ground Station Access intervals, with a single-click CSV export for all contact data.</li>
+</ul>
+<p><strong>Key design choices:</strong></p>
+<ul>
+<li><strong>J2 Perturbed propagation:</strong> Includes secular effects on RAAN (Ω) and Argument of Perigee (ω).</li>
+<li><strong>Spherical Earth model:</strong> Used for all ground geometry, occlusion checks, and footprint calculations.</li>
+<li><strong>Physically Correct Inertial View:</strong> In 3D, enabling “Inertial View” fixes the orbital planes in space and shows the entire Earth system (globe, terminator, footprints, station) rotating correctly underneath.</li>
+<li><strong>Global Epoch:</strong> The simulation timeline is anchored to a single, user-defined UTC epoch.</li>
+</ul>
+<hr>
+<h2 id="system-requirements">2) System Requirements</h2>
+<ul>
+<li>A modern desktop browser with <strong>WebGL</strong> enabled (Chrome, Edge, Firefox, Safari).</li>
+<li>8+ GB RAM recommended for long timelines or small time steps.</li>
+<li>Runs fully offline; no external network access is required.</li>
+</ul>
+<hr>
+<h2 id="concepts-in-brief">3) Concepts in Brief</h2>
+<ul>
+<li><strong>Orbital Elements (per satellite):</strong><br>
+<strong>a (km)</strong>, <strong>e</strong>, <strong>i (deg)</strong>, <strong>Ω RAAN (deg)</strong>, <strong>ω argp (deg)</strong>, <strong>ν₀ (deg)</strong> (true anomaly at the global epoch), and <strong>Min. elevation ε (deg)</strong> to define the sensor footprint.</li>
+<li><strong>Ground Station:</strong> A point on the Earth’s surface defined by <strong>Latitude</strong>, <strong>Longitude</strong>, and a <strong>Min. Elevation Mask (deg)</strong> used to calculate access.</li>
+<li><strong>J2 Perturbations:</strong> The application models the primary secular (long-term) effects of Earth’s equatorial bulge, which causes the orbital plane (Ω) and the orbit’s orientation within that plane (ω) to precess over time.</li>
+<li><strong>Frames:</strong><br>
+<strong>ECI</strong> (Earth‑Centered Inertial) for orbital dynamics; <strong>ECEF</strong> (Earth‑Centered Earth‑Fixed) for longitudes/latitudes and surface overlays.</li>
+<li><strong>Sensor Footprint (FOV):</strong> The circular area on the Earth’s surface visible to a satellite, defined by the minimum elevation angle (ε) from the ground to the satellite.</li>
+<li><strong>Local Horizon:</strong> The physical limit of visibility from the satellite to the Earth’s limb (a 0° elevation angle), appearing as a solid circle on the map/globe.</li>
+<li><strong>Inter-Satellite LOS:</strong> A direct line-of-sight exists if the straight line connecting the two satellites is not obstructed by the spherical Earth.</li>
+<li><strong>Ground Station Access:</strong> Access occurs when the elevation angle from the ground station up to a satellite is greater than the station’s specified minimum elevation mask.</li>
+</ul>
+<hr>
+<h2 id="quick-start">4) Quick Start</h2>
+<ol>
+<li><strong>Open</strong> the HTML file in your browser.</li>
+<li>In <strong>Simulation Controls</strong>, set the <strong>Epoch (UTC, ISO‑8601)</strong>, <strong>Step Δt (s)</strong>, and <strong>Duration (min)</strong>.</li>
+<li>Configure orbital elements for <strong>Satellite 1</strong> and <strong>Satellite 2</strong>. Set the <strong>Min. elevation ε (deg)</strong> to define the sensor footprint (FOV).</li>
+<li>Configure the <strong>Ground Station</strong> by setting its Latitude, Longitude, and Min. Elevation Mask.</li>
+<li>Click <strong>Recompute tracks</strong>. Then click <strong>▶︎ Run</strong> to animate.</li>
+<li>Use the <strong>Projection</strong> dropdown to toggle between the 2D Map and 3D Globe.</li>
+<li>For a larger view, click the <strong>Focus Mode (`↗`)</strong> button on the top-right of the map.</li>
+<li>Observe the <strong>Line-of-Sight</strong> and <strong>Ground Station Access</strong> tables. Click <strong>Export Contact Times (CSV)</strong> to save all data.</li>
+</ol>
+<blockquote>
+<p><strong>Tip:</strong> If nothing moves, verify the <strong>epoch</strong> format, ensure <strong>duration</strong> &gt; 0, and click <strong>Recompute tracks</strong> again.</p>
+</blockquote>
+<hr>
+<h2 id="controls-reference">5) Controls Reference</h2>
+<h3 id="simulation-controls-top‑left">5.1 Simulation Controls (top‑left)</h3>
+<ul>
+<li><strong>Epoch (UTC, ISO‑8601):</strong> Global start; valid ISO string like <code>YYYY-MM-DDThh:mm:ssZ</code>.</li>
+<li><strong>Step Δt (s):</strong> Simulation step. Smaller is more precise but computationally slower.</li>
+<li><strong>Duration (min):</strong> Total span simulated from the epoch.</li>
+<li><strong>Playback speed:</strong> Visual playback rate when running.</li>
+<li><strong>Buttons:</strong>
+<ul>
+<li><strong>▶︎ Run / ⏸ Pause:</strong> Start/stop time stepping.</li>
+<li><strong>↺ Reset:</strong> Rewind to the epoch (keeps current inputs).</li>
+<li><strong>Recompute tracks:</strong> Re-runs the simulation with the current inputs.</li>
+<li><strong>Export Contact Times (CSV):</strong> Saves a CSV file with all computed LOS and GS Access intervals.</li>
+</ul>
+</li>
+</ul>
+<h3 id="satellite-panels">5.2 Satellite Panels</h3>
+<p><strong>Satellite 1 (blue)</strong> and <strong>Satellite 2 (orange)</strong> each include:</p>
+<ul>
+<li><strong>a, e, i, Ω, ω, ν₀:</strong> Standard classical orbital elements. <strong>ν₀</strong> is the true anomaly at the global epoch.</li>
+<li><strong>Min. elevation ε (deg):</strong> The elevation angle from the edge of the ground footprint up to the satellite. This defines the size of the dashed FOV circle.</li>
+<li><strong>Visibility Toggles:</strong> Independent controls to show/hide the Satellite marker, its Track, its FOV circle, and its Horizon circle.</li>
+</ul>
+<h3 id="ground-station-panel">5.3 Ground Station Panel</h3>
+<ul>
+<li><strong>Show Ground Station:</strong> Toggles visibility of the station and enables access calculations.</li>
+<li><strong>Latitude (°):</strong> Station latitude (-90 to 90).</li>
+<li><strong>Longitude (°):</strong> Station longitude (-180 to 180).</li>
+<li><strong>Min Elev. Mask (°):</strong> The minimum elevation angle required for a satellite to be considered “in view” of the station.</li>
+</ul>
+<h3 id="view-controls-right-side-card">5.4 View Controls (right-side card)</h3>
+<h4 id="view-header">5.4.1 View Header</h4>
+<ul>
+<li><strong>Projection:</strong> Toggles between <strong>2D Map</strong> and <strong>3D Globe</strong> visualizations.</li>
+<li><strong>Focus Mode (`↗`):</strong> Click to expand the view to fill the entire browser window for immersive analysis or presentations. The button icon changes to `↙`; click again to exit.</li>
+</ul>
+<h4 id="d-globe-controls">5.4.2 3D Globe Controls</h4>
+<ul>
+<li><strong>Reset camera:</strong> Re-centers and re-zooms the globe to frame the orbits.</li>
+<li><strong>Focus:</strong> <strong>None | Sat 1 | Sat 2</strong>. Automatically follows the selected satellite. Disables free-look mouse rotation.</li>
+<li><strong>Show terminator:</strong> Toggles the day/night shading on the globe.</li>
+<li><strong>Show link on LOS:</strong> Toggles the visibility of the green line connecting satellites when they have line-of-sight.</li>
+<li><strong>Inertial view:</strong>
+<ul>
+<li><strong>ON:</strong> A physically correct inertial view. Orbital tracks are fixed in space while the Earth and all surface overlays (terminator, footprints, ground station) rotate underneath.</li>
+<li><strong>OFF:</strong> A standard Earth-fixed (ECEF) view where the camera rotates with the Earth.</li>
+</ul>
+</li>
+<li><strong>Show Elements:</strong> Toggles the visibility of a Head-Up Display (HUD) in the top corners of the view. The HUD displays key orbital elements for each satellite. The values for <code>a</code>, <code>e</code>, and <code>i</code> are static, while <strong>Ω (RAAN)</strong> and <strong>ω (ArgP)</strong> are updated in real-time to show the live effects of J2 perturbations.</li>
+<li><strong>Trail (min):</strong> Limits the length of the orbital trail drawn behind each satellite to the specified number of past minutes.</li>
+</ul>
+<h4 id="data-tables">5.4.3 Data Tables</h4>
+<p>Two tables are populated after clicking <strong>Recompute tracks</strong>:</p>
+<ul>
+<li><strong>Line-of-Sight Intervals:</strong> Lists all time windows where the two satellites have a direct, unobstructed line of sight.</li>
+<li><strong>Ground Station Access Intervals:</strong> Lists all time windows where a satellite is above the ground station’s minimum elevation mask.</li>
+</ul>
+<hr>
+<h2 id="how-the-physics-works-succinct">6) How The Physics Works (succinct)</h2>
+<ul>
+<li><strong>Orbit propagation:</strong> Two-body Keplerian motion with J2 secular perturbations applied to RAAN (Ω) and Argument of Perigee (ω) at each time step.</li>
+<li><strong>ECI↔ECEF:</strong> Standard transformation using Greenwich Mean Sidereal Time (GMST) for Earth’s rotation.</li>
+<li><strong>Footprint (FOV):</strong> The user’s <strong>Min. elevation ε</strong> is converted to a sensor half-angle (η) via the sine rule: η = arcsin((R_E * cos(ε)) / (R_E + h)). This angle defines the cone that creates the footprint circle on the surface.</li>
+<li><strong>Horizon:</strong> Calculated as the physical limit of sight, where the elevation angle ε is 0°. The angular radius is η = arccos(R_E / (R_E + h)).</li>
+<li><strong>LOS test:</strong> Checks if the straight-line segment between the satellites’ ECI positions intersects the Earth’s spherical body.</li>
+<li><strong>GS Access test:</strong> Calculates the elevation angle of the satellite relative to the ground station’s local horizon. Access is true if this angle exceeds the station’s <strong>Min. Elevation Mask</strong>.</li>
+</ul>
+<p><strong>Constants:</strong> Earth (μ = 398600.4418 km<sup>3</sup>/s<sup>2</sup>); Earth radius (R_E = 6378.137 km); J2 = 1.0826267e-3.</p>
+<hr>
+<h2 id="typical-workflows">7) Typical Workflows</h2>
+<h3 id="a-visualize-a-sun-synchronous-orbit">A) Visualize a Sun-Synchronous Orbit</h3>
+<ol>
+<li>Set elements for a typical SSO (e.g., <code>a=7078 km</code>, <code>e=0.001</code>, <code>i=98 deg</code>).</li>
+<li>Set a long <strong>Duration</strong> (e.g., <code>1440 min</code> for one day). <strong>Recompute tracks</strong>.</li>
+<li>Switch to <strong>3D Globe</strong> and enable <strong>Inertial view</strong>. In the 3D controls, check <strong>Show Elements</strong>.</li>
+<li>Scrub the timeline and observe that the orbital plane maintains its orientation relative to the Sun. Notice in the HUD that the value for <strong>Ω (RAAN)</strong> precesses slowly while other elements remain relatively stable, numerically confirming the SSO behavior.</li>
+</ol>
+<h3 id="b-follow-one-satellite-in-inertial-space">B) Follow one satellite in inertial space</h3>
+<ol>
+<li>Switch <strong>Projection=3D Globe</strong>; enable <strong>Inertial view</strong>.</li>
+<li>Set <strong>Focus=Sat 1</strong>.</li>
+<li>The camera will now "chase" Sat 1’s ECI position, keeping it centered while the Earth rotates underneath.</li>
+</ol>
+<h3 id="c-extract-all-contact-times">C) Extract all contact times</h3>
+<ol>
+<li>Configure both satellites and the ground station. <strong>Recompute tracks</strong>.</li>
+<li>The <strong>Line-of-Sight</strong> and <strong>Ground Station Access</strong> tables will populate.</li>
+<li>Click <strong>Export Contact Times (CSV)</strong> to save a single file containing both data sets, distinguished by a “type” column.</li>
+</ol>
+<h3 id="d-conduct-a-presentation">D) Conduct a presentation</h3>
+<ol>
+<li>Set up the desired scenario and click <strong>Recompute tracks</strong>.</li>
+<li>Click the <strong>Focus Mode (`↗`)</strong> button to expand the visualization to full screen.</li>
+<li>Use the scrub bar and playback controls to narrate the simulation. Click `↙` to exit.</li>
+</ol>
+<h3 id="suggested-time-steps">7.1 Suggested Time Steps</h3>
+<ul>
+<li><strong>LEO:</strong> Δt = <strong>1–10 s</strong>, Duration = <strong>60–120 min</strong></li>
+<li><strong>MEO:</strong> Δt = <strong>10–30 s</strong>, Duration = <strong>1–6 h</strong></li>
+<li><strong>GEO:</strong> Δt = <strong>30–60 s</strong>, Duration = <strong>12–24 h</strong><br>
+<em>Large Δt can visually alias fast motion; reduce Δt for close inspection.</em></li>
+</ul>
+<hr>
+<h2 id="simulation-fidelity--limitations">8) Simulation Fidelity &amp; Limitations</h2>
+<p>This application is designed as an educational tool, a demonstration platform, and for first-order analysis. It prioritizes interactivity, speed, and the clear visualization of core orbital mechanics concepts. To achieve this, several simplifying assumptions are made. For mission-critical analysis, always use a high-fidelity, validated simulation suite.</p>
+<h3 id="j2-dynamics-model">8.1 J2 Dynamics Model</h3>
+<p>The J2 model is a significant improvement over simple two-body physics, as it correctly models the long-term precession of the orbit due to Earth’s equatorial bulge. However, it does <strong>not</strong> include other major orbital perturbations, such as:</p>
+<ul>
+<li><strong>Atmospheric Drag:</strong> Orbits will not decay; altitude and eccentricity remain constant. This is the largest source of error for LEO satellites.</li>
+<li><strong>Solar Radiation Pressure (SRP):</strong> The small force exerted by sunlight is not modeled.</li>
+<li><strong>Third-Body Gravity:</strong> Gravitational effects from the Moon, Sun, and other planets are ignored.</li>
+<li><strong>Higher-Order Gravity Fields:</strong> Does not account for Earth’s non-uniform mass distribution beyond the J2 term (e.g., tesseral harmonics).</li>
+</ul>
+<h3 id="spherical-ground-model">8.2 Spherical Ground Model</h3>
+<p>All calculations involving the Earth’s surface assume a perfect sphere. This simplification has the following consequences:</p>
+<ul>
+<li><strong>No Earth Oblateness:</strong> The model does not use a standard ellipsoid (like WGS-84). This can introduce small errors in ground track position and access calculations. Geodetic vs. geocentric latitudes are not distinguished.</li>
+<li><strong>No Terrain:</strong> Ground station access calculations do not account for local terrain (mountains, valleys) that could block visibility in the real world.</li>
+</ul>
+<hr>
+<h2 id="troubleshooting">9) Troubleshooting</h2>
+<ul>
+<li><strong>Can’t rotate the globe?</strong> Check if <strong>Focus</strong> is set to Sat 1 or Sat 2. Set it to <strong>None</strong> to enable free-look camera controls.</li>
+<li><strong>Nothing moves / index stuck at 0:</strong> Verify <strong>Epoch</strong> format; ensure <strong>Duration</strong> &gt; 0; click <strong>Recompute tracks</strong>.</li>
+<li><strong>Blank screen when switching views:</strong> This can happen during rapid layout changes. Try toggling Focus Mode again or resizing the browser window to force a redraw.</li>
+<li><strong>No footprints:</strong> Ensure <strong>Show FOV=Yes</strong>. At very high altitudes, the sensor cone may not intersect the Earth.</li>
+</ul>
+<hr>
+<h2 id="release-notes-frame-edition-draft">10) Release Notes (Frame Edition Draft)</h2>
+<p>This version represents a major upgrade from a simple two-body visualizer to a more capable analysis tool. Key highlights include:</p>
+<ul>
+<li><strong>J2 Dynamics:</strong> The propagator now includes J2 secular perturbations for more realistic long-term orbital precession.</li>
+<li><strong>Ground Station:</strong> A fully configurable ground station has been added, with calculations and data export for satellite access times.</li>
+<li><strong>Physically Correct 3D View:</strong> The “Inertial View” has been completely overhauled to correctly show the Earth rotating underneath fixed ECI orbits. All coordinate frames are now handled correctly in all views.</li>
+<li><strong>“Focus Mode” UI:</strong> The new `↗` button expands the visualization to fill the entire browser window for immersive analysis and presentations.</li>
+<li><strong>Live Elements HUD:</strong> A new Head-Up Display can be toggled in the 3D view to show live, propagated orbital elements (Ω and ω), making the effects of perturbations easy to see numerically.</li>
+</ul>
+<hr>
+<p style="text-align: center; font-size: 0.9em; color: #888;">
+  Copyright &copy; 2025 Paul Henkiel. All rights reserved.
+</p>
+</div>
+</body>
+
+</html>

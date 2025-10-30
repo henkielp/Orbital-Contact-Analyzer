@@ -2,6 +2,13 @@
 
 ![Image](https://github.com/user-attachments/assets/4912f8a8-bda7-45f5-b553-202cbc485017)
 
+## Live Demo
+
+**This application is live and can be used directly in your browser.**
+
+**➡️ [Launch Orbital Contact Analyzer](https://henkielp.github.io/Orbital-Contact-Analyzer/)**
+
+
 A single-file, offline web application for simulating two Earth satellites and a ground station. The application renders 2D/3D views, visualizes sensor footprints, and computes satellite-to-satellite line-of-sight (LOS) and satellite-to-ground-station access intervals.
 
 This tool is designed as an educational platform to demonstrate core orbital mechanics concepts in an interactive way.

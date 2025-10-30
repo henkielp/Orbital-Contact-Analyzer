@@ -25,6 +25,13 @@ No installation is needed. This is a single-file application.
 1.  Download the `Orbital_Contact_Analyzer.html` file from this repository.
 2.  Open the file in a modern desktop web browser (Chrome, Firefox, Edge, or Safari).
 
+## Documentation
+
+A complete user manual is available for detailed instructions on all features, controls, and workflows.
+
+**➡️ [Read the Full User Manual Here](User-Manual.html)**
+
+
 **System Requirements:**
 *   A modern desktop browser with WebGL enabled.
 *   8+ GB RAM is recommended for simulations with long timelines or small time steps.

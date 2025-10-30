@@ -29,7 +29,7 @@ This tool is designed as an educational platform to demonstrate core orbital mec
 
 No installation is needed. This is a single-file application.
 
-1.  Download the `Orbital_Contact_Analyzer.html` file from this repository.
+1.  Download the index.html file from this repository.
 2.  Open the file in a modern desktop web browser (Chrome, Firefox, Edge, or Safari).
 
 ## Documentation

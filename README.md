@@ -76,7 +76,7 @@ Found a bug or have an idea for a new feature? Please open an issue in this repo
 
 ## The Development Story
 
-This application was developed in a unique collaboration between a human project manager and an AI coding partner (Gemini and GPT models). The AI authored the code, while the humans managed the project's scope, conducted reviews, and handled testing. You can read the full story of how it was built in this blog post: [An Educational Satellite Explorer—Built with AI](https://web.archive.org/web/20251031002101/https://paulhenkiel.com/2025/10/21/two-satellite-explorer-footprints-los/).
+This application was developed in a unique collaboration between a human project manager and an AI coding partner (Gemini and GPT models). The AI authored the code, while the humans managed the project's scope, conducted reviews, and handled testing. You can read the full story of how it was built in this locally-archived post:  [An Educational Satellite Explorer—Built with AI](https://github.com/henkielp/Orbital-Contact-Analyzer/blob/main/docs/development-story.html).
 
 ## Acknowledgments
 

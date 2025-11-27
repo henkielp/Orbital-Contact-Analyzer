@@ -78,7 +78,7 @@ Found a bug or have an idea for a new feature? Please open an issue in this repo
 
 This application was developed in a unique collaboration between a human project manager and an AI coding partner (Gemini and GPT models). The AI authored the code, while the humans managed the project's scope, conducted reviews, and handled testing. You can read the full story of how it was built via the original post on my website or the offline copy archived with this repository:
 
-*   **Original Blog Post (Live):** [An Educational Satellite Explorer—Built with AI](https://henkiel.com/2025/10/21/an-educational-satellite-explorer-built-with-ai/)
+*   **Original Blog Post (Live):** [An Educational Satellite Explorer—Built with AI](https://henkiel.com/2025/10/21/two-satellite-explorer-footprints-los/)
 *   **Archived Version (Offline):** [An Educational Satellite Explorer—Built with AI](docs/development-story.html)
 
 ## Acknowledgments

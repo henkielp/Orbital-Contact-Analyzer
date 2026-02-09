@@ -1,5 +1,5 @@
 # Orbital Contact Analyzer
-**Current Version:** 1.1.1
+**Current Version:** 1.1.0
 
 ![Image](https://github.com/user-attachments/assets/e40534ef-20ee-4a34-a66d-c264231109dd)
 
@@ -66,22 +66,6 @@ This is an educational tool, not a validated, mission-critical analysis suite. I
 *   **Earth Oblateness (WGS-84):** Does not use a standard ellipsoid, which may introduce small errors in ground track positions.
 *   **Terrain:** Access calculations do not account for terrain that could block visibility.
 
-## Changelog
-
-### v1.1.1
-
-Bug fix release addressing numerical edge cases and code quality improvements:
-
-- **Fixed negative longitude wrapping:** Corrected the `wrapLon` function to properly handle negative longitudes using JavaScript's modulo behavior.
-- **Fixed negative angle wrapping:** Corrected the `wrapPi` function for proper angle normalization with negative values.
-- **Fixed 90° elevation mask edge case:** Added numerical tolerance (`GS_EL_EPS`) and domain clamping to prevent `NaN` results when ground station elevation mask is set to exactly 90°.
-- **Removed dead UI references:** Cleaned up undefined `ui.map2DStyle` and unified terminator toggle handling.
-- **Improved code clarity:** Renamed internal True Anomaly variables from `M` to `nu` for semantic correctness (Mean Anomaly is conventionally `M`, True Anomaly is `ν`).
-
-### v1.1.0
-
-- Initial public release with J2 perturbations, dual satellite simulation, ground station access, and 2D/3D visualization.
-
 ## License
 
 This project is licensed under the **MIT License**. See the `LICENSE` file for details. You are free to modify, distribute, and use this software, even for commercial purposes, as long as you provide attribution.
@@ -100,4 +84,4 @@ This application was developed in a unique collaboration between a human project
 ## Acknowledgments
 
 *   Thank you to **Jay** for invaluable ideas, feedback, and review throughout the project.
-*   The 2D map and 3D globe textures are based on NASA Visible Earth's image set: ["Blue Marble: Land Surface, Shallow Water, and Shaded Topography."](https://visibleearth.nasa.gov/images/73751/blue-marble-land-surface-shallow-water-and-shaded-topography) For similar imagery, see NASA's ["Blue Marble: Next Generation Base Map with Topography."](https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography/)
+*   The 2D map and 3D globe textures are based on NASA Visible Earth's image set: ["Blue Marble: Land Surface, Shallow Water, and Shaded Topography."](https://visibleearth.nasa.gov/images/73751/blue-marble-land-surface-shallow-water-and-shaded-topography)

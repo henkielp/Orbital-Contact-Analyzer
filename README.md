@@ -2,7 +2,7 @@
 
 **Current Version:** 1.2.0
 
-![Image](https://github.com/user-attachments/assets/e40534ef-20ee-4a34-a66d-c264231109dd)
+![Image](https://github.com/user-attachments/assets/0249718f-c028-48d4-aa34-191dd0b003f0)
 
 ## Live Demo
 

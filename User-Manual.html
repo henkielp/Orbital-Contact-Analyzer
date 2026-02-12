@@ -1,5 +1,5 @@
 <!--
-    User Manual: Orbital Contact Analyzer version 1.1.0
+    User Manual: Orbital Contact Analyzer version 1.2.0
 
     Copyright (c) 2025 Paul Henkiel
 
@@ -2338,7 +2338,7 @@ body {
 </head>
 <body>
   <article class="markdown-body"><h1 class="atx" id="orbital-contact-analyzer--user-manual">Orbital Contact Analyzer — User Manual</h1>
-<p><strong>Version:</strong> v1.1.0
+<p><strong>Version:</strong> v1.2.0
 <strong>Scope:</strong> Single-file, offline HTML app for simulating two Earth satellites and a ground station. The application uses a J2 perturbation model, renders 2D/3D views, visualizes sensor footprints and local horizons, and computes both satellite-to-satellite line-of-sight (LOS) and satellite-to-ground-station access intervals.</p>
 <hr>
 <h2 class="atx" id="1-overview">1) Overview</h2>
@@ -2446,6 +2446,85 @@ body {
 </ul>
 </li>
 </ul>
+<h3 class="atx" id="55-keyboard-shortcuts">5.5 Keyboard Shortcuts</h3>
+<p>The following keyboard shortcuts are available for faster navigation. Shortcuts are disabled when typing in input fields.</p>
+<table>
+<thead>
+<tr><th>Key</th><th>Action</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Space</code></td><td>Play/Pause simulation</td></tr>
+<tr><td><code>R</code></td><td>Reset to start</td></tr>
+<tr><td><code>←</code> / <code>→</code></td><td>Step backward/forward (auto-pauses)</td></tr>
+<tr><td><code>V</code></td><td>Toggle 2D/3D view</td></tr>
+<tr><td><code>I</code></td><td>Toggle Inertial view (3D only)</td></tr>
+<tr><td><code>0</code></td><td>Free camera (no focus)</td></tr>
+<tr><td><code>1</code></td><td>Focus on Satellite 1</td></tr>
+<tr><td><code>2</code></td><td>Focus on Satellite 2</td></tr>
+<tr><td><code>E</code></td><td>Export CSV</td></tr>
+<tr><td><code>T</code></td><td>Open TLE import for Satellite 1</td></tr>
+<tr><td><code>Shift+T</code></td><td>Open TLE import for Satellite 2</td></tr>
+</tbody>
+</table>
+<h3 class="atx" id="56-tle-import">5.6 TLE Import</h3>
+<p>Each satellite panel includes a collapsible <strong>"Import from TLE"</strong> section that allows you to populate orbital elements from a standard Two-Line Element set.</p>
+<p><strong>To use TLE Import:</strong></p>
+<ol>
+<li>Click <strong>"▶ Import from TLE"</strong> at the bottom of a satellite panel (or press <code>T</code> for Sat 1, <code>Shift+T</code> for Sat 2).</li>
+<li>Paste a TLE (2 or 3 lines) into the text area.</li>
+<li>Optionally check <strong>"Set simulation epoch to TLE epoch"</strong> to sync the simulation start time.</li>
+<li>Click <strong>"Apply TLE"</strong> to populate the orbital elements.</li>
+</ol>
+<p><strong>Supported TLE format:</strong></p>
+<pre><code>ISS (ZARYA)             ← Optional name line (ignored)
+1 25544U 98067A   24001.50000000  .00016717  00000-0  10270-3 0  9025
+2 25544  51.6400 247.4627 0006703 130.5360 229.6106 15.49815571423456
+</code></pre>
+<p><strong>What gets extracted:</strong></p>
+<ul>
+<li>Inclination, RAAN, Eccentricity, Argument of Perigee, Mean Anomaly (converted to True Anomaly)</li>
+<li>Mean Motion (converted to Semi-major Axis)</li>
+<li>Epoch (year and day-of-year converted to ISO-8601 UTC)</li>
+</ul>
+<h4 class="atx" id="understanding-tle-epochs">Understanding TLE Epochs</h4>
+<p><strong>What is a TLE epoch?</strong></p>
+<p>Think of a TLE as a photograph of a satellite's orbit taken at a specific moment. That moment is called the "epoch." The TLE tells you exactly where the satellite was and how it was moving when the photograph was taken. Just like a photograph, a TLE captures a single instant in time.</p>
+<p><strong>The mismatch problem</strong></p>
+<p>Imagine you have two photographs of friends taken on different days. If you try to place them in the same scene, something will look wrong because they weren't actually together at the same time.</p>
+<p>The same thing happens with TLEs. Suppose:</p>
+<ul>
+<li>Satellite 1's TLE is from <strong>January 15th</strong></li>
+<li>Satellite 2's TLE is from <strong>January 20th</strong></li>
+<li>Your simulation starts on <strong>January 15th</strong></li>
+</ul>
+<p>Satellite 1 will be shown correctly because its TLE matches the simulation date. But Satellite 2 will appear where it <em>would have been</em> on January 20th, not where it <em>actually was</em> on January 15th. Over five days, a LEO satellite completes roughly 75 orbits, so the position error can be substantial.</p>
+<p><strong>Why positions drift over time</strong></p>
+<p>Satellites don't stay still. Between any two dates:</p>
+<ul>
+<li>The satellite completes many orbits, changing its position along the orbital path</li>
+<li>Earth's equatorial bulge causes the orbital plane to slowly rotate (RAAN drift)</li>
+<li>The orientation of the orbit's ellipse also shifts (argument of perigee drift)</li>
+</ul>
+<p>These effects accumulate. A TLE from last week won't accurately describe where a satellite is today.</p>
+<p><strong>Normalized vs. raw TLEs</strong></p>
+<p>You may notice that some TLEs always show satellites starting at the equator. This happens because certain data providers "normalize" their TLEs so the epoch aligns with the satellite's ascending node (the moment it crosses the equator heading north). This is a processing choice, not a physical requirement.</p>
+<p>Raw, unprocessed TLEs from sources like <a href="https://celestrak.org">CelesTrak</a> or <a href="https://space-track.org">Space-Track</a> will show satellites at whatever position they occupied when the TLE was generated. Both types are valid; they're just different conventions.</p>
+<p><strong>Practical recommendations</strong></p>
+<ul>
+<li>When comparing two satellites, use TLEs with epochs within 1 day of each other</li>
+<li>Enable "Set simulation epoch to TLE epoch" for at least one satellite to anchor the simulation to real orbital data</li>
+<li>If you need both satellites positioned accurately, find TLEs from the same source generated on the same day</li>
+<li>For educational or demonstration purposes, exact epoch matching is less critical</li>
+</ul>
+<p><strong>Caution: Dual epoch sync</strong></p>
+<p>If you enable "Set simulation epoch to TLE epoch" for <em>both</em> satellites and their TLE epochs differ, the behavior is "last write wins":</p>
+<ol>
+<li>Import TLE for Satellite 1 with epoch sync → simulation epoch becomes Satellite 1's TLE epoch</li>
+<li>Import TLE for Satellite 2 with epoch sync → simulation epoch is <em>overwritten</em> with Satellite 2's TLE epoch</li>
+</ol>
+<p>This means Satellite 1's elements (which were accurate at its TLE epoch) are now being propagated from a different epoch, which could introduce error. To avoid this, either use TLEs with matching epochs, or enable epoch sync for only one satellite.</p>
+<p>The app will warn you if a TLE's epoch differs from the simulation epoch by more than 1 day. After import, expand the TLE section to view the epoch for reference.</p>
+<p><strong>Note:</strong> The TLE parser validates that the resulting orbit has perigee above Earth's surface. Invalid TLEs will display an error message.</p>
 <hr>
 <h2 class="atx" id="6-how-the-physics-works">6) How The Physics Works</h2>
 <ul>
@@ -2495,6 +2574,25 @@ body {
 </ul>
 <hr>
 <h2 class="atx" id="10-release-notes">10) Release Notes</h2>
+<p><strong>v1.2.0</strong></p>
+<ul>
+<li><strong>Feature:</strong> Added <strong>TLE Import</strong> to parse Two-Line Element sets and populate orbital elements.</li>
+<li><strong>UI:</strong> Collapsible "Import from TLE" section in each satellite panel with epoch sync option.</li>
+<li><strong>Keyboard:</strong> Added <code>T</code> (Sat 1) and <code>Shift+T</code> (Sat 2) shortcuts for TLE import.</li>
+<li><strong>Documentation:</strong> Updated User Manual with new TLE Import section (5.6).</li>
+</ul>
+<p><strong>v1.1.2</strong></p>
+<ul>
+<li><strong>Feature:</strong> Added <strong>Keyboard Shortcuts</strong> for improved workflow (Space, R, arrow keys, V, I, 0/1/2, E).</li>
+<li><strong>Documentation:</strong> Updated User Manual with new Keyboard Shortcuts section (5.5).</li>
+</ul>
+<p><strong>v1.1.1</strong></p>
+<ul>
+<li><strong>Fix:</strong> Corrected negative longitude and angle wrapping functions.</li>
+<li><strong>Fix:</strong> Added numerical tolerance for 90° elevation mask edge case.</li>
+<li><strong>Fix:</strong> Removed dead UI references and unified terminator toggle handling.</li>
+<li><strong>Code Quality:</strong> Renamed internal True Anomaly variables from <code>M</code> to <code>nu</code> for semantic correctness.</li>
+</ul>
 <p><strong>v1.1.0</strong></p>
 <ul>
 <li><strong>Feature:</strong> Added <strong>Scenario Presets</strong>. Users can now instantly load LEO, SSO, GEO, and Molniya configurations via a dropdown menu.</li>

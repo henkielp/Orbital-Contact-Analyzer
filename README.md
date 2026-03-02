@@ -1,7 +1,7 @@
 # Orbital Contact Analyzer
 **Current Version:** 1.3.0
 
-![Image](https://github.com/user-attachments/assets/e40534ef-20ee-4a34-a66d-c264231109dd)
+![Image](https://github.com/user-attachments/assets/5959ceea-4c6e-4665-add9-e1e4a1e0ea19)
 
 ## Live Demo
 

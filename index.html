@@ -1,8 +1,18 @@
 <!DOCTYPE html>
 <!--
-  Orbital Contact Analyzer v1.2.0
+  Orbital Contact Analyzer v1.3.0
   
   New Features in this version:
+  - Ground Station 2: Second independent ground station with its own coordinates,
+    elevation mask, and access calculations
+    - Disabled by default, enable via "Show Ground Station 2" dropdown
+    - GS1 shown as white triangle, GS2 as green triangle (2D and 3D)
+    - Access intervals table includes "Station" column, merges both stations
+    - Separate footer badges for GS1 and GS2 real-time access status
+    - CSV export labels intervals as ground-station-1 or ground-station-2
+  - Code cleanup: Removed 176 lines of stray Evernote/Skitch CSS artifacts
+  
+  Previous Features (v1.2.0):
   - TLE Import: Parse Two-Line Element sets to populate orbital elements
     - Collapsible section in each satellite panel
     - Option to sync simulation epoch to TLE epoch
@@ -32,7 +42,7 @@
   /* --- Global Styles & Color Palette --- */
   :root{
     --bg:#0b1020; --panel:#121a33; --ink:#e8ecff; --muted:#b7c1ff; --accent:#7aa2ff; --good:#6de07a; --bad:#ff6b6b; --warn:#ffcc66;
-    --grid:#2a3255; --track1:#8ad; --track2:#da7; --horizon:#ccc;
+    --grid:#2a3255; --track1:#8ad; --track2:#da7; --horizon:#ccc; --gs2:#7de8c0;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
@@ -81,6 +91,8 @@
   .swatch.dash{background:none; border-top:2px dashed var(--horizon); height:0;}
   .swatch.triangle{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:10px solid white;background:transparent;position:relative;}
   .swatch.triangle::after{content:'';position:absolute;top:1.5px;left:-6px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:9px solid var(--panel);}
+  .swatch.triangle2{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:10px solid var(--gs2);background:transparent;position:relative;}
+  .swatch.triangle2::after{content:'';position:absolute;top:1.5px;left:-6px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:9px solid var(--panel);}
 
   /* --- Data Tables --- */
   table{width:100%;border-collapse:collapse}
@@ -259,12 +271,25 @@ footer {
     <!-- Card: Ground Station Controls -->
     <section class="card" id="gs-controls">
         <div class="body">
-            <h2>Ground Station</h2>
+            <h2>Ground Station 1</h2>
             <div class="grid cols-3">
-                <div style="grid-column: 1 / span 3;"><label>Show Ground Station</label><select id="gs_visible"><option value="1" selected="">Yes</option><option value="0">No</option></select></div>
+                <div style="grid-column: 1 / span 3;"><label>Show Ground Station 1</label><select id="gs_visible"><option value="1" selected="">Yes</option><option value="0">No</option></select></div>
                 <div><label>Latitude (°)</label><input id="gs_lat" type="number" min="-90" max="90" step="0.01" value="28.57"></div>
                 <div><label>Longitude (°)</label><input id="gs_lon" type="number" min="-180" max="180" step="0.01" value="-80.65"></div>
                 <div><label>Min Elev. Mask (°)</label><input id="gs_el_mask" type="number" min="0" max="90" step="0.1" value="5"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Card: Ground Station 2 Controls -->
+    <section class="card" id="gs2-controls">
+        <div class="body">
+            <h2>Ground Station 2</h2>
+            <div class="grid cols-3">
+                <div style="grid-column: 1 / span 3;"><label>Show Ground Station 2</label><select id="gs2_visible"><option value="0" selected="">No</option><option value="1">Yes</option></select></div>
+                <div><label>Latitude (°)</label><input id="gs2_lat" type="number" min="-90" max="90" step="0.01" value="48.86"></div>
+                <div><label>Longitude (°)</label><input id="gs2_lon" type="number" min="-180" max="180" step="0.01" value="2.35"></div>
+                <div><label>Min Elev. Mask (°)</label><input id="gs2_el_mask" type="number" min="0" max="90" step="0.1" value="5"></div>
             </div>
         </div>
     </section>
@@ -411,7 +436,8 @@ footer {
           <span class="key"><span class="swatch" style="background:var(--good); width: 18px;"></span>LOS Link</span>
           <span class="key"><span class="swatch round" style="background:#89b4ff"></span>Sat 1 Marker</span>
           <span class="key"><span class="swatch round" style="background:#ffb86b"></span>Sat 2 Marker</span>
-          <span class="key"><span class="swatch triangle"></span>Ground Station</span>
+          <span class="key"><span class="swatch triangle"></span>Ground Station 1</span>
+          <span class="key"><span class="swatch triangle2"></span>Ground Station 2</span>
         </div>
       </div>
       <div class="body">
@@ -428,19 +454,20 @@ footer {
       </div>
       <div class="body">
         <h2>Ground Station Access Intervals</h2>
-        <div class="small">Computed for each visible satellite across the whole time span.</div>
+        <div class="small">Computed for each visible satellite and ground station across the whole time span.</div>
         <div style="margin-top:8px">
           <table>
             <thead>
-              <tr><th>Satellite</th><th>Start (UTC)</th><th>End (UTC)</th><th class="right">Duration (s)</th></tr>
+              <tr><th>Station</th><th>Satellite</th><th>Start (UTC)</th><th>End (UTC)</th><th class="right">Duration (s)</th></tr>
             </thead>
-            <tbody id="gsAccessTable"><tr><td style="color:var(--track1)">Sat 1 (blue)</td><td class="mono">2026-02-08T07:03:08Z</td><td class="mono">2026-02-08T07:10:38Z</td><td class="right mono">450</td></tr><tr><td style="color:var(--track2)">Sat 2 (orange)</td><td class="mono">2026-02-08T07:37:08Z</td><td class="mono">2026-02-08T07:45:38Z</td><td class="right mono">510</td></tr></tbody>
+            <tbody id="gsAccessTable"></tbody>
           </table>
         </div>
       </div>
        <div class="footer">
         <span>Inter-Sat LOS: <b id="losNow" class="badge" style="color: var(--bad);">NO</b></span>
-        <span>Ground Station Access: <b id="gsAccessNow" class="badge">None</b></span>
+        <span>GS1 Access: <b id="gsAccessNow" class="badge">None</b></span>
+        <span>GS2 Access: <b id="gs2AccessNow" class="badge">—</b></span>
         <span class="pill" style="font-size: 11px;">J2 Dynamics • Spherical Ground Model</span>
       </div>
     </section>
@@ -722,8 +749,9 @@ const ui = {
   s1: {a:el('s1_a'), e:el('s1_e'), i:el('s1_i'), O:el('s1_O'), w:el('s1_w'), nu:el('s1_nu'), el:el('s1_el'), visible: el('s1_visible'), track_on: el('s1_track_on'), fov_on:el('s1_fov_on'), horizon_on:el('s1_horizon_on'), epoch:el('sim_epoch')},
   s2: {a:el('s2_a'), e:el('s2_e'), i:el('s2_i'), O:el('s2_O'), w:el('s2_w'), nu:el('s2_nu'), el:el('s2_el'), visible: el('s2_visible'), track_on: el('s2_track_on'), fov_on:el('s2_fov_on'), horizon_on:el('s2_horizon_on'), epoch:el('sim_epoch')},
   gs: {visible: el('gs_visible'), lat: el('gs_lat'), lon: el('gs_lon'), el_mask: el('gs_el_mask')},
+  gs2: {visible: el('gs2_visible'), lat: el('gs2_lat'), lon: el('gs2_lon'), el_mask: el('gs2_el_mask')},
   btnRun: el('btnRun'), btnPause: el('btnPause'), btnReset: el('btnReset'), btnExport: el('btnExport'), btnRecompute: el('btnRecompute'),
-  status: el('status'), losNow: el('losNow'), gsAccessNow: el('gsAccessNow'), idx: el('idx'), idxMax: el('idxMax'), tcur: el('tcur'),
+  status: el('status'), losNow: el('losNow'), gsAccessNow: el('gsAccessNow'), gs2AccessNow: el('gs2AccessNow'), idx: el('idx'), idxMax: el('idxMax'), tcur: el('tcur'),
   losTable: el('losTable'), gsAccessTable: el('gsAccessTable'), canvas: el('map'), coord: el('coord'), scrub: el('scrub'),  chkLink: el('chkLink'),
   projection: el('projection'), globe: el('globe'), glCtrls: el('glCtrls'), btnCamReset: el('btnCamReset'), chkTerm: el('chkTerm'), mapStyle: el('mapStyle'), chkGrid: el('chkGrid'), focusSel: el('focusSel'), trail: el('trail'),
   btnFocusMode: el('btnFocusMode'),
@@ -768,18 +796,21 @@ const state = {
   times: [],      // Array of Date objects for each step
   el1: null,      // Parsed orbital elements for Satellite 1
   el2: null,      // Parsed orbital elements for Satellite 2
-  gs: null,       // Parsed ground station parameters
+  gs: null,       // Parsed ground station 1 parameters
+  gs2: null,      // Parsed ground station 2 parameters
   r1: [], r2: [],  // ECI position vectors for each step
   r1ecef: [], r2ecef: [], // ECEF position vectors
   lat1: [], lon1: [], alt1: [], // Geographic coordinates
   lat2: [], lon2: [], alt2: [],
   psi1: [], psi2: [],         // Footprint angular radii
   horizon1: [], horizon2: [], // Horizon angular radii
-  gs_access1: [], gs_access2: [], // Ground station access booleans
+  gs_access1: [], gs_access2: [], // Ground station 1 access booleans
+  gs2_access1: [], gs2_access2: [], // Ground station 2 access booleans
   idx: 0,         // Current time step index
   running: false, // Playback state
   losIntervals: [], losNow: false,
   gsAccessIntervals: [], gsAccessNow: 'None',
+  gs2AccessIntervals: [], gs2AccessNow: '—',
   gl: {           // WebGL-specific state
       init:false, yaw:0, pitch:0.25, dist:2.2, showTerm:true, last:0,
       progs:{}, bufs:{}, trk1:null, trk2:null,
@@ -868,6 +899,16 @@ if(scenarioSel){
         ui.gs.el_mask.value = data.gs.mask;
     }
 
+    // Update GS2 (Optional, default to disabled)
+    if(data.gs2){
+        ui.gs2.visible.value = '1';
+        ui.gs2.lat.value = data.gs2.lat;
+        ui.gs2.lon.value = data.gs2.lon;
+        ui.gs2.el_mask.value = data.gs2.mask;
+    } else {
+        ui.gs2.visible.value = '0';
+    }
+
     // Reset Simulation
     state.running = false;
     ui.status.textContent = `Loaded ${key.toUpperCase()} scenario.`;
@@ -880,7 +921,8 @@ if(scenarioSel){
       ui.dt, ui.dur,
       ui.s1.a, ui.s1.e, ui.s1.i, ui.s1.O, ui.s1.w, ui.s1.nu,
       ui.s2.a, ui.s2.e, ui.s2.i, ui.s2.O, ui.s2.w, ui.s2.nu,
-      ui.gs.lat, ui.gs.lon
+      ui.gs.lat, ui.gs.lon,
+      ui.gs2.lat, ui.gs2.lon
   ];
   physicsInputs.forEach(inp => {
       inp.addEventListener('input', () => {
@@ -955,7 +997,7 @@ function readElements(){
           el_mask: d2r(+g.el_mask.value)
       };
   }
-  return { el1: packSat(ui.s1), el2: packSat(ui.s2), gs: packGS(ui.gs), dt:+ui.dt.value, durMin:+ui.dur.value, speed: Math.max(1, Math.floor(+ui.speed.value)) };
+  return { el1: packSat(ui.s1), el2: packSat(ui.s2), gs: packGS(ui.gs), gs2: packGS(ui.gs2), dt:+ui.dt.value, durMin:+ui.dur.value, speed: Math.max(1, Math.floor(+ui.speed.value)) };
 }
 
 /**
@@ -977,7 +1019,7 @@ const p = readElements();
     }
     state.t01 = baseEpoch; state.t02 = baseEpoch; state.t0 = baseEpoch;
   })();
-state.el1 = p.el1; state.el2 = p.el2; state.gs = p.gs;
+state.el1 = p.el1; state.el2 = p.el2; state.gs = p.gs; state.gs2 = p.gs2;
   // Generate the timeline array of Date objects.
   const N = Math.floor(p.durMin*60/p.dt)+1;
   state.times = new Array(N);
@@ -992,9 +1034,12 @@ for(let k=0;k<N;k++) state.times[k] = new Date(t0ms + k*p.dt*1000);
   state.psi1 = new Array(N); state.psi2 = new Array(N);
   state.horizon1 = new Array(N); state.horizon2 = new Array(N);
   state.gs_access1 = new Array(N); state.gs_access2 = new Array(N);
+  state.gs2_access1 = new Array(N); state.gs2_access2 = new Array(N);
 
   const r_gs_ecef = state.gs.visible ? lonLatToXYZ(d2r(state.gs.lon), d2r(state.gs.lat), RE) : null;
   const up_gs_ecef = r_gs_ecef ? unit(r_gs_ecef) : null;
+  const r_gs2_ecef = state.gs2.visible ? lonLatToXYZ(d2r(state.gs2.lon), d2r(state.gs2.lat), RE) : null;
+  const up_gs2_ecef = r_gs2_ecef ? unit(r_gs2_ecef) : null;
 
   // Main propagation loop.
   for(let k=0;k<N;k++){
@@ -1035,6 +1080,20 @@ for(let k=0;k<N;k++) state.times[k] = new Date(t0ms + k*p.dt*1000);
         state.gs_access1[k] = false;
         state.gs_access2[k] = false;
     }
+
+    // Check for ground station 2 access.
+    if (r_gs2_ecef) {
+        const r_los1 = [r1e[0]-r_gs2_ecef[0], r1e[1]-r_gs2_ecef[1], r1e[2]-r_gs2_ecef[2]];
+        const sin_el1 = dot(up_gs2_ecef, r_los1) / norm(r_los1);
+        state.gs2_access1[k] = Math.asin(clamp(sin_el1, -1, 1)) >= (state.gs2.el_mask - GS_EL_EPS);
+
+        const r_los2 = [r2e[0]-r_gs2_ecef[0], r2e[1]-r_gs2_ecef[1], r2e[2]-r_gs2_ecef[2]];
+        const sin_el2 = dot(up_gs2_ecef, r_los2) / norm(r_los2);
+        state.gs2_access2[k] = Math.asin(clamp(sin_el2, -1, 1)) >= (state.gs2.el_mask - GS_EL_EPS);
+    } else {
+        state.gs2_access1[k] = false;
+        state.gs2_access2[k] = false;
+    }
   }
   
   // Precompute ECI and ECEF orbits for 3D tracks
@@ -1057,8 +1116,12 @@ for(let k=0;k<N;k++) state.times[k] = new Date(t0ms + k*p.dt*1000);
   // Compute contiguous access intervals from boolean arrays.
   state.losIntervals = (state.el1.visible && state.el2.visible) ? computeAccessIntervals(state.times, state.r1.map((_,k)=>los(state.r1[k], state.r2[k]))) : [];
   state.gsAccessIntervals = state.gs.visible ? [
-    ...computeAccessIntervals(state.times, state.gs_access1).map(p => ({sat:1, ...p})),
-    ...computeAccessIntervals(state.times, state.gs_access2).map(p => ({sat:2, ...p}))
+    ...computeAccessIntervals(state.times, state.gs_access1).map(p => ({gs:1, sat:1, ...p})),
+    ...computeAccessIntervals(state.times, state.gs_access2).map(p => ({gs:1, sat:2, ...p}))
+  ].sort((a,b) => a.start - b.start) : [];
+  state.gs2AccessIntervals = state.gs2.visible ? [
+    ...computeAccessIntervals(state.times, state.gs2_access1).map(p => ({gs:2, sat:1, ...p})),
+    ...computeAccessIntervals(state.times, state.gs2_access2).map(p => ({gs:2, sat:2, ...p}))
   ].sort((a,b) => a.start - b.start) : [];
   
   // Update UI.
@@ -1068,7 +1131,7 @@ for(let k=0;k<N;k++) state.times[k] = new Date(t0ms + k*p.dt*1000);
   if(ui.scrub){ ui.scrub.max = (N-1).toString(); ui.scrub.value = '0'; }
   ui.status.textContent = `Computed ${N} steps @ Δt=${p.dt}s over ${p.durMin} min.`;
   
-  draw(); updateLOSBadge(); updateGSAccessBadge();
+  draw(); updateLOSBadge(); updateGSAccessBadge(); updateGS2AccessBadge();
 }
 
 /**
@@ -1112,16 +1175,19 @@ function fillLOSTable(){
  */
 function fillGSTable() {
     const tb = ui.gsAccessTable; tb.innerHTML = '';
-    if (!state.gs.visible) {
-        tb.innerHTML = `<tr><td colspan="4" style="text-align:center; color: var(--muted);">Enable Ground Station to see access intervals.</td></tr>`;
+    if (!state.gs.visible && !state.gs2.visible) {
+        tb.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--muted);">Enable a Ground Station to see access intervals.</td></tr>`;
         return;
     }
-    for (const {sat, start, end} of state.gsAccessIntervals) {
+    const allIntervals = [...state.gsAccessIntervals, ...state.gs2AccessIntervals].sort((a,b) => a.start - b.start);
+    for (const {gs, sat, start, end} of allIntervals) {
         const dur = (end - start) / 1000;
         const tr = document.createElement('tr');
+        const gsName = gs === 1 ? 'GS1' : 'GS2';
+        const gsColor = gs === 1 ? '#fff' : 'var(--gs2)';
         const satName = sat === 1 ? 'Sat 1 (blue)' : 'Sat 2 (orange)';
         const satColor = sat === 1 ? 'var(--track1)' : 'var(--track2)';
-        tr.innerHTML = `<td style="color:${satColor}">${satName}</td><td class="mono">${start.toISOString().replace('.000', '')}</td><td class="mono">${end.toISOString().replace('.000', '')}</td><td class="right mono">${dur.toFixed(0)}</td>`;
+        tr.innerHTML = `<td style="color:${gsColor}">${gsName}</td><td style="color:${satColor}">${satName}</td><td class="mono">${start.toISOString().replace('.000', '')}</td><td class="mono">${end.toISOString().replace('.000', '')}</td><td class="right mono">${dur.toFixed(0)}</td>`;
         tb.appendChild(tr);
     }
 }
@@ -1144,7 +1210,15 @@ function exportContactTimes() {
     for (const {sat, start, end} of state.gsAccessIntervals) {
       const dur = ((end - start) / 1000).toFixed(0);
       const satName = `Sat ${sat}`;
-      csv += `ground-station,${satName},${start.toISOString()},${end.toISOString()},${dur}\n`;
+      csv += `ground-station-1,${satName},${start.toISOString()},${end.toISOString()},${dur}\n`;
+    }
+  }
+  // Add ground station 2 access intervals.
+  if (state.gs2AccessIntervals && state.gs2AccessIntervals.length > 0) {
+    for (const {sat, start, end} of state.gs2AccessIntervals) {
+      const dur = ((end - start) / 1000).toFixed(0);
+      const satName = `Sat ${sat}`;
+      csv += `ground-station-2,${satName},${start.toISOString()},${end.toISOString()},${dur}\n`;
     }
   }
 
@@ -1305,16 +1379,17 @@ function drawMarker(lonDeg, latDeg, color){
 }
 
 /**
- * Draws the triangular marker for the ground station on the 2D map.
+ * Draws a triangular marker for a ground station on the 2D map.
  * @param {number} lonDeg Longitude [deg].
  * @param {number} latDeg Latitude [deg].
+ * @param {string} [color='#fff'] Fill color for the marker.
  * @returns {void}
  */
-function drawGSMarker(lonDeg, latDeg) {
+function drawGSMarker(lonDeg, latDeg, color = '#fff') {
     const W=ui.canvas.width, H=ui.canvas.height;
     const [x,y] = lonLatToXY(lonDeg, latDeg, W, H);
     ctx.save();
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = color;
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -1427,9 +1502,9 @@ function draw(){
     }
   }
 
-  // Ground Station and access links
+  // Ground Station 1 and access links
   if(state.gs.visible) {
-      drawGSMarker(state.gs.lon, state.gs.lat);
+      drawGSMarker(state.gs.lon, state.gs.lat, '#fff');
       if (state.el1.visible && state.gs_access1[k]) {
           const lon1 = r2d(state.lon1[k]), lat1 = r2d(state.lat1[k]);
           ctx.save();
@@ -1447,6 +1522,31 @@ function draw(){
           ctx.lineWidth = 1.5;
           ctx.beginPath();
           drawLineAntimeridianAware(ctx, lon2, lat2, state.gs.lon, state.gs.lat, W, H, true);
+          ctx.stroke();
+          ctx.restore();
+      }
+  }
+
+  // Ground Station 2 and access links
+  if(state.gs2.visible) {
+      drawGSMarker(state.gs2.lon, state.gs2.lat, rootStyle.getPropertyValue('--gs2'));
+      if (state.el1.visible && state.gs2_access1[k]) {
+          const lon1 = r2d(state.lon1[k]), lat1 = r2d(state.lat1[k]);
+          ctx.save();
+          ctx.strokeStyle = colorTrack1;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          drawLineAntimeridianAware(ctx, lon1, lat1, state.gs2.lon, state.gs2.lat, W, H, true);
+          ctx.stroke();
+          ctx.restore();
+      }
+      if (state.el2.visible && state.gs2_access2[k]) {
+          const lon2 = r2d(state.lon2[k]), lat2 = r2d(state.lat2[k]);
+          ctx.save();
+          ctx.strokeStyle = colorTrack2;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          drawLineAntimeridianAware(ctx, lon2, lat2, state.gs2.lon, state.gs2.lat, W, H, true);
           ctx.stroke();
           ctx.restore();
       }
@@ -1536,7 +1636,7 @@ function updateLOSBadge(){
   ui.losNow.style.color = ok? 'var(--good)' : 'var(--bad)';
 }
 /**
- * Updates the Ground Station Access status badge in the UI footer.
+ * Updates the Ground Station 1 Access status badge in the UI footer.
  * @returns {void}
  */
 function updateGSAccessBadge() {
@@ -1556,6 +1656,27 @@ function updateGSAccessBadge() {
     ui.gsAccessNow.textContent = state.gsAccessNow;
 }
 
+/**
+ * Updates the Ground Station 2 Access status badge in the UI footer.
+ * @returns {void}
+ */
+function updateGS2AccessBadge() {
+    if (!state.times.length || !state.gs2.visible) {
+        ui.gs2AccessNow.textContent = '—';
+        return;
+    }
+    const k = state.idx;
+    const s1_access = state.el1.visible && state.gs2_access1[k];
+    const s2_access = state.el2.visible && state.gs2_access2[k];
+    
+    if (s1_access && s2_access) state.gs2AccessNow = 'Both';
+    else if (s1_access) state.gs2AccessNow = 'Sat 1';
+    else if (s2_access) state.gs2AccessNow = 'Sat 2';
+    else state.gs2AccessNow = 'None';
+    
+    ui.gs2AccessNow.textContent = state.gs2AccessNow;
+}
+
 // --- Section: Animation & UI Event Handling ---
 
 /**
@@ -1571,7 +1692,7 @@ function loop(){
   for(let s=0; s<p.speed; s++){
     if(state.idx < state.times.length-1) state.idx++; else {state.running=false; break;}
   }
-  draw(); updateLOSBadge(); updateGSAccessBadge();
+  draw(); updateLOSBadge(); updateGSAccessBadge(); updateGS2AccessBadge();
   rafId = requestAnimationFrame(loop);
 }
 
@@ -1597,7 +1718,7 @@ ui.btnExport.addEventListener('click', exportContactTimes);
 if(ui.scrub){
   const setIdxFromScrub = ()=>{
     const k = Math.max(0, Math.min(state.times.length-1, parseInt(ui.scrub.value||'0')));
-    state.idx = k; draw(); updateLOSBadge(); updateGSAccessBadge();
+    state.idx = k; draw(); updateLOSBadge(); updateGSAccessBadge(); updateGS2AccessBadge();
   };
   ui.scrub.addEventListener('input', ()=>{ window.__isScrubbing = true; state.running=false; ui.status.textContent='Paused (scrubbing)…'; setIdxFromScrub(); });
   ui.scrub.addEventListener('change', ()=>{ window.__isScrubbing = false; setIdxFromScrub(); });
@@ -1692,7 +1813,7 @@ function resizeGlobe(){
 resizeCanvas();
 resizeGlobe();
 // Add event listeners for controls that trigger a full recomputation.
-[ui.s1.visible, ui.s2.visible, ui.s1.track_on, ui.s2.track_on, ui.s1.fov_on, ui.s2.fov_on, ui.s1.horizon_on, ui.s2.horizon_on, ui.gs.visible, ui.gs.lat, ui.gs.lon, ui.gs.el_mask].forEach(elem => {
+[ui.s1.visible, ui.s2.visible, ui.s1.track_on, ui.s2.track_on, ui.s1.fov_on, ui.s2.fov_on, ui.s1.horizon_on, ui.s2.horizon_on, ui.gs.visible, ui.gs.lat, ui.gs.lon, ui.gs.el_mask, ui.gs2.visible, ui.gs2.lat, ui.gs2.lon, ui.gs2.el_mask].forEach(elem => {
     elem.addEventListener('change', recompute);
 });
 ui.s1.visible.addEventListener('change', updateControlStates);
@@ -1820,6 +1941,8 @@ function initGlobe(){
   state.gl.bufs.link = gl.createBuffer();
   state.gl.bufs.gsMarker = gl.createBuffer();
   state.gl.bufs.gsLink = gl.createBuffer();
+  state.gl.bufs.gs2Marker = gl.createBuffer();
+  state.gl.bufs.gs2Link = gl.createBuffer();
 
   // State
   state.gl.yaw = 0; state.gl.pitch = 0.25; state.gl.dist = 2.2; state.gl.showTerm = true; state.gl.last = performance.now();
@@ -2080,6 +2203,58 @@ function drawGlobe(){ if(!state.gl.init) initGlobe(); if(!state.gl.init) return;
           const link2_verts = createLinkVerts(p_start, p_end);
           gl.bindBuffer(gl.ARRAY_BUFFER, state.gl.bufs.gsLink); gl.bufferData(gl.ARRAY_BUFFER, link2_verts, gl.DYNAMIC_DRAW);
           drawDashed(state.gl.bufs.gsLink, 0, link2_verts.length / 3, colorTrack2_rgb, VP);
+      }
+  }
+
+  // Draw Ground Station 2 and links.
+  if (state.gs2.visible) {
+      const gs2_lon=d2r(state.gs2.lon), gs2_lat=d2r(state.gs2.lat);
+      const gs2_ecef = lonLatToXYZ(gs2_lon, gs2_lat, 1.002);
+      const up2 = unit(gs2_ecef); const east2 = unit([-gs2_ecef[1], gs2_ecef[0], 0]); const north2 = cross(up2, east2);
+      const s2 = 0.02;
+      const q1 = [gs2_ecef[0] + s2*north2[0], gs2_ecef[1] + s2*north2[1], gs2_ecef[2] + s2*north2[2]];
+      const q2 = [gs2_ecef[0] - 0.5*s2*north2[0] - 0.866*s2*east2[0], gs2_ecef[1] - 0.5*s2*north2[1] - 0.866*s2*east2[1], gs2_ecef[2] - 0.5*s2*north2[2] - 0.866*s2*east2[2]];
+      const q3 = [gs2_ecef[0] - 0.5*s2*north2[0] + 0.866*s2*east2[0], gs2_ecef[1] - 0.5*s2*north2[1] + 0.866*s2*east2[1], gs2_ecef[2] - 0.5*s2*north2[2] + 0.866*s2*east2[2]];
+      
+      const verts2 = new Float32Array([...q1, ...q2, ...q3]);
+      gl.bindBuffer(gl.ARRAY_BUFFER, state.gl.bufs.gs2Marker); gl.bufferData(gl.ARRAY_BUFFER, verts2, gl.DYNAMIC_DRAW);
+      gl.useProgram(state.gl.progs.triangle);
+      gl.uniform3f(gl.getUniformLocation(state.gl.progs.triangle, 'uColor'), 0.49, 0.91, 0.75);
+      gl.uniformMatrix4fv(gl.getUniformLocation(state.gl.progs.triangle, 'uMVP'), false, MVP_ground);
+      let a2 = gl.getAttribLocation(state.gl.progs.triangle, 'aPos');
+      gl.enableVertexAttribArray(a2); gl.vertexAttribPointer(a2, 3, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+      const createLinkVerts2 = (p1, p2, segments = 50) => {
+          const verts = new Float32Array((segments + 1) * 3);
+          const dx = p2[0] - p1[0], dy = p2[1] - p1[1], dz = p2[2] - p1[2];
+          for (let i = 0; i <= segments; i++) {
+              const t = i / segments;
+              verts[i * 3]     = p1[0] + t * dx;
+              verts[i * 3 + 1] = p1[1] + t * dy;
+              verts[i * 3 + 2] = p1[2] + t * dz;
+          }
+          return verts;
+      };
+
+      const gs2_ecef_norm = lonLatToXYZ(d2r(state.gs2.lon), d2r(state.gs2.lat));
+      if (state.el1.visible && state.gs2_access1[k]) {
+          const r1v_eci = state.r1[k];
+          const r1v_ecef = state.r1ecef[k];
+          const p_start = useInert ? ecefToEci(gs2_ecef_norm, t) : gs2_ecef_norm;
+          const p_end = useInert ? [r1v_eci[0]/RE, r1v_eci[1]/RE, r1v_eci[2]/RE] : [r1v_ecef[0]/RE, r1v_ecef[1]/RE, r1v_ecef[2]/RE];
+          const link1_verts = createLinkVerts2(p_start, p_end);
+          gl.bindBuffer(gl.ARRAY_BUFFER, state.gl.bufs.gs2Link); gl.bufferData(gl.ARRAY_BUFFER, link1_verts, gl.DYNAMIC_DRAW);
+          drawDashed(state.gl.bufs.gs2Link, 0, link1_verts.length / 3, colorTrack1_rgb, VP);
+      }
+      if (state.el2.visible && state.gs2_access2[k]) {
+          const r2v_eci = state.r2[k];
+          const r2v_ecef = state.r2ecef[k];
+          const p_start = useInert ? ecefToEci(gs2_ecef_norm, t) : gs2_ecef_norm;
+          const p_end = useInert ? [r2v_eci[0]/RE, r2v_eci[1]/RE, r2v_eci[2]/RE] : [r2v_ecef[0]/RE, r2v_ecef[1]/RE, r2v_ecef[2]/RE];
+          const link2_verts = createLinkVerts2(p_start, p_end);
+          gl.bindBuffer(gl.ARRAY_BUFFER, state.gl.bufs.gs2Link); gl.bufferData(gl.ARRAY_BUFFER, link2_verts, gl.DYNAMIC_DRAW);
+          drawDashed(state.gl.bufs.gs2Link, 0, link2_verts.length / 3, colorTrack2_rgb, VP);
       }
   }
 
@@ -2402,6 +2577,7 @@ function handleKeyboard(e) {
         draw();
         updateLOSBadge();
         updateGSAccessBadge();
+        updateGS2AccessBadge();
       }
       break;
       
@@ -2415,6 +2591,7 @@ function handleKeyboard(e) {
         draw();
         updateLOSBadge();
         updateGSAccessBadge();
+        updateGS2AccessBadge();
       }
       break;
       

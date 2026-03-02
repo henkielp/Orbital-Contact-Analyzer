@@ -36,10 +36,10 @@ No installation is needed. This is a single-file application.
 
 ## Documentation
 
-A complete user manual is available for detailed instructions on all features, controls, and workflows.
+A complete user manual is available for detailed instructions on all features, controls, and workflows. Choose your preferred format:
 
-**➡️ [Read the Full User Manual Here](User-Manual.html)**
-
+* **➡️[Read the Web Version (Live HTML)](https://henkielp.github.io/Orbital-Contact-Analyzer/User-Manual.html)**
+* **➡️ [View / Download the PDF Version](User-Manual.pdf)**
 
 **System Requirements:**
 *   A modern desktop browser with WebGL enabled.

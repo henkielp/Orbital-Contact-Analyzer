@@ -2338,8 +2338,8 @@ body {
 </head>
 <body>
   <article class="markdown-body"><h1 class="atx" id="orbital-contact-analyzer--user-manual">Orbital Contact Analyzer — User Manual</h1>
-<p><strong>Version:</strong> v1.2.0
-<strong>Scope:</strong> Single-file, offline HTML app for simulating two Earth satellites and a ground station. The application uses a J2 perturbation model, renders 2D/3D views, visualizes sensor footprints and local horizons, and computes both satellite-to-satellite line-of-sight (LOS) and satellite-to-ground-station access intervals.</p>
+<p><strong>Version:</strong> v1.3.0
+<strong>Scope:</strong> Single-file, offline HTML app for simulating two Earth satellites and up to two ground stations. The application uses a J2 perturbation model, renders 2D/3D views, visualizes sensor footprints and local horizons, and computes both satellite-to-satellite line-of-sight (LOS) and satellite-to-ground-station access intervals.</p>
 <hr>
 <h2 class="atx" id="1-overview">1) Overview</h2>
 <p>This app propagates two satellites using a model that includes J2 secular perturbations, converts positions between ECI and ECEF frames, and visualizes:</p>
@@ -2370,7 +2370,7 @@ body {
 <li><strong>Min. elevation <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span class="mord mathnormal">ϵ</span></span></span></span> (deg):</strong> Defines the sensor footprint (Field of View).</li>
 </ul>
 </li>
-<li><strong>Ground Station:</strong> A point on the Earth’s surface defined by Latitude, Longitude, and a Min. Elevation Mask (deg) used to calculate access.</li>
+<li><strong>Ground Stations:</strong> Up to two points on the Earth’s surface, each defined by Latitude, Longitude, and a Min. Elevation Mask (deg) used to calculate access. Ground Station 1 (GS1) is shown as a white triangle; Ground Station 2 (GS2) is shown as a green triangle.</li>
 <li><strong>J2 Perturbations:</strong> The application models the primary secular (long-term) effects of Earth’s equatorial bulge, which causes the orbital plane (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.6833em;" class="strut"></span><span class="mord">Ω</span></span></span></span>) and the orbit’s orientation within that plane (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span style="margin-right:0.03588em;" class="mord mathnormal">ω</span></span></span></span>) to precess over time.</li>
 <li><strong>Frames:</strong><ul>
 <li><strong>ECI</strong> (Earth-Centered Inertial) for orbital dynamics.</li>
@@ -2405,7 +2405,7 @@ body {
 <h2 class="atx" id="5-controls-reference">5) Controls Reference</h2>
 <h3 class="atx" id="51-simulation-controls-top-left">5.1 Simulation Controls (Top-Left)</h3>
 <ul>
-<li><strong>Load Scenario:</strong> A preset menu that configures the entire application state (Satellites, Ground Station, and Time settings) for specific astrodynamics demonstrations.</li>
+<li><strong>Load Scenario:</strong> A preset menu that configures the entire application state (Satellites, Ground Stations, and Time settings) for specific astrodynamics demonstrations.</li>
 <li><strong>Epoch (UTC, ISO-8601):</strong> Global start time (e.g., <code>2025-11-18T12:00:00Z</code>).</li>
 <li><strong>Step <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.6833em;" class="strut"></span><span class="mord">Δ</span><span class="mord mathnormal">t</span></span></span></span> (s):</strong> Simulation step size. Smaller is more precise but computationally heavier.</li>
 <li><strong>Duration (min):</strong> Total span simulated from the epoch.</li>
@@ -2424,12 +2424,17 @@ body {
 <li><strong>Min. elevation <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span class="mord mathnormal">ϵ</span></span></span></span>:</strong> Defines the size of the dashed FOV circle.</li>
 <li><strong>Visibility Toggles:</strong> Show/hide the Satellite marker, Track, FOV circle, or Horizon circle.</li>
 </ul>
-<h3 class="atx" id="53-ground-station-panel">5.3 Ground Station Panel</h3>
+<h3 class="atx" id="53-ground-station-panels">5.3 Ground Station Panels</h3>
+<p>The application supports two independent ground stations. Ground Station 1 (GS1) is enabled by default; Ground Station 2 (GS2) is disabled by default and can be enabled when needed.</p>
+<p>Each ground station panel contains:</p>
 <ul>
-<li><strong>Show Ground Station:</strong> Toggles visibility and enables access calculations.</li>
+<li><strong>Show Ground Station:</strong> Toggles visibility and enables access calculations for that station.</li>
 <li><strong>Lat/Lon:</strong> Station coordinates.</li>
-<li><strong>Min Elev. Mask:</strong> The angle required for a satellite to be considered "in view."</li>
+<li><strong>Min Elev. Mask:</strong> The minimum elevation angle (above the local horizon) required for a satellite to be considered "in view" from that station.</li>
 </ul>
+<p>On the 2D map and 3D globe, GS1 appears as a <strong>white</strong> triangle and GS2 appears as a <strong>green</strong> triangle. When a satellite has access to a ground station, a dashed link line is drawn between them in the satellite's color.</p>
+<p>The <strong>Ground Station Access Intervals</strong> table (below the map) merges intervals from both stations in chronological order. Each row indicates which station (GS1 or GS2) and which satellite are involved. The footer displays separate real-time badges for each station.</p>
+<p>The <strong>CSV export</strong> labels intervals as <code>ground-station-1</code> or <code>ground-station-2</code> in the type column.</p>
 <h3 class="atx" id="54-view-controls-right-side">5.4 View Controls (Right-Side)</h3>
 <ul>
 <li><strong>Projection:</strong> Toggle 2D Map vs. 3D Globe.</li>
@@ -2574,6 +2579,16 @@ body {
 </ul>
 <hr>
 <h2 class="atx" id="10-release-notes">10) Release Notes</h2>
+<p><strong>v1.3.0</strong></p>
+<ul>
+<li><strong>Feature:</strong> Added <strong>Ground Station 2</strong>. The application now supports two independent ground stations, each with its own coordinates, elevation mask, and access calculations.</li>
+<li><strong>UI:</strong> New "Ground Station 2" panel (disabled by default). GS1 shown as white triangle, GS2 as green triangle on both 2D and 3D views.</li>
+<li><strong>UI:</strong> Access intervals table now includes a "Station" column and merges both stations' intervals chronologically.</li>
+<li><strong>UI:</strong> Separate footer badges for GS1 and GS2 real-time access status.</li>
+<li><strong>Export:</strong> CSV now labels intervals as <code>ground-station-1</code> or <code>ground-station-2</code>.</li>
+<li><strong>Code Quality:</strong> Removed stray Evernote/Skitch CSS artifacts (176 lines) and browser-injected comment from file.</li>
+<li><strong>Documentation:</strong> Updated User Manual with new Ground Station Panels section (5.3).</li>
+</ul>
 <p><strong>v1.2.0</strong></p>
 <ul>
 <li><strong>Feature:</strong> Added <strong>TLE Import</strong> to parse Two-Line Element sets and populate orbital elements.</li>

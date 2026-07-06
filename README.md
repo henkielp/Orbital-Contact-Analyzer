@@ -42,7 +42,7 @@ No installation is needed. This is a single-file application.
 A complete user manual is available for detailed instructions on all features, controls, and workflows. Choose your preferred format:
 
 * **➡️[Read the Web Version (Live HTML)](https://henkielp.github.io/Orbital-Contact-Analyzer/User-Manual.html)**
-* **➡️ [View / Download the PDF Version](User-Manual.pdf)**
+* **➡️ [View / Download the PDF Version](https://henkielp.github.io/Orbital-Contact-Analyzer/User-Manual.pdf)**
 
 **System Requirements:**
 *   A modern browser with WebGL enabled, on desktop, tablet, or phone. Touch is fully supported.

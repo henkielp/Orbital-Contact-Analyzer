@@ -1,7 +1,7 @@
 <!--
-    User Manual: Orbital Contact Analyzer version 1.2.0
+    User Manual: Orbital Contact Analyzer version 1.4.0
 
-    Copyright (c) 2025 Paul Henkiel
+    Copyright (c) 2025-2026 Paul Henkiel
 
     This document is licensed under the same terms as the software it describes.
     Refer to the MIT License in the project repository for details.
@@ -11,7 +11,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title></title>
+  <title>Orbital Contact Analyzer - User Manual</title>
   <style>
   @font-face {
   font-family: octicons-link;
@@ -2338,7 +2338,7 @@ body {
 </head>
 <body>
   <article class="markdown-body"><h1 class="atx" id="orbital-contact-analyzer--user-manual">Orbital Contact Analyzer — User Manual</h1>
-<p><strong>Version:</strong> v1.3.0
+<p><strong>Version:</strong> v1.4.0
 <strong>Scope:</strong> Single-file, offline HTML app for simulating two Earth satellites and up to two ground stations. The application uses a J2 perturbation model, renders 2D/3D views, visualizes sensor footprints and local horizons, and computes both satellite-to-satellite line-of-sight (LOS) and satellite-to-ground-station access intervals.</p>
 <hr>
 <h2 class="atx" id="1-overview">1) Overview</h2>
@@ -2353,12 +2353,14 @@ body {
 <ul>
 <li><strong>J2 Perturbed propagation:</strong> Includes secular effects on RAAN (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.6833em;" class="strut"></span><span class="mord">Ω</span></span></span></span>) and Argument of Perigee (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span style="margin-right:0.03588em;" class="mord mathnormal">ω</span></span></span></span>).</li>
 <li><strong>Spherical Earth model:</strong> Used for all ground geometry, occlusion checks, and footprint calculations.</li>
-<li><strong>Global Epoch:</strong> The simulation timeline is anchored to a single, user-defined UTC epoch.</li>
+<li><strong>Epoch anchoring:</strong> The simulation timeline starts at a user-defined UTC epoch. Each satellite additionally carries its own element anchor: hand-entered elements are valid at the simulation epoch, while TLE-imported elements are anchored at the TLE's own epoch and propagated onto the timeline.</li>
+<li><strong>Sub-second contact boundaries:</strong> Access interval start and end times are refined by bisection between time samples rather than being quantized to the step size. This solves the <em>model's</em> access transitions to about 1 ms; real-world accuracy is limited by the model physics, not the grid (see Simulation Fidelity &amp; Limitations).</li>
 </ul>
 <hr>
 <h2 class="atx" id="2-system-requirements">2) System Requirements</h2>
 <ul>
-<li>A modern desktop browser with <strong>WebGL enabled</strong> (Chrome, Edge, Firefox, Safari).</li>
+<li>A modern browser with <strong>WebGL enabled</strong> (Chrome, Edge, Firefox, Safari), on desktop, tablet, or phone.</li>
+<li><strong>Touch is fully supported:</strong> one finger rotates the 3D globe, two fingers pinch-zoom, and the layout adapts to narrow screens.</li>
 <li>8+ GB RAM recommended for long timelines or small time steps.</li>
 <li><strong>Runs fully offline;</strong> no external network access is required.</li>
 </ul>
@@ -2396,10 +2398,11 @@ body {
 </li>
 <li><strong>Visualize:</strong><ul>
 <li>Use the <strong>Projection</strong> dropdown (top right) to switch between the <strong>2D Map</strong> and <strong>3D Globe</strong>.</li>
+<li>Use <strong>Trail (orbits)</strong> beside it to shorten long ground tracks: enter a number of orbits to draw as a trailing window, or leave it blank for the full time span.</li>
 <li>Click <strong>Focus Mode</strong> (<code>↗</code>) to expand the visualization to fill your screen.</li>
 </ul>
 </li>
-<li><strong>Analyze Data:</strong> Scroll down to view the <strong>Line-of-Sight</strong> and <strong>Ground Station Access</strong> tables. Click <strong>Export Contact Times (CSV)</strong> to download a spreadsheet of all computed windows.</li>
+<li><strong>Analyze Data:</strong> Scroll down to view the <strong>Line-of-Sight</strong> and <strong>Ground Station Access</strong> tables. Click <strong>Export CSV</strong> to download a spreadsheet of all computed windows.</li>
 </ol>
 <hr>
 <h2 class="atx" id="5-controls-reference">5) Controls Reference</h2>
@@ -2409,12 +2412,12 @@ body {
 <li><strong>Epoch (UTC, ISO-8601):</strong> Global start time (e.g., <code>2025-11-18T12:00:00Z</code>).</li>
 <li><strong>Step <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.6833em;" class="strut"></span><span class="mord">Δ</span><span class="mord mathnormal">t</span></span></span></span> (s):</strong> Simulation step size. Smaller is more precise but computationally heavier.</li>
 <li><strong>Duration (min):</strong> Total span simulated from the epoch.</li>
-<li><strong>Playback speed:</strong> Visual playback rate when running (steps per animation frame).</li>
+<li><strong>Speed (steps/frame):</strong> Simulation steps advanced per animation frame while running. The equivalent real-time multiple depends on the step size and your display refresh rate.</li>
 <li><strong>Buttons:</strong><ul>
 <li><strong>▶ Run / Pause:</strong> Start or stop time stepping.</li>
 <li><strong>↺ Reset:</strong> Rewind to the epoch.</li>
 <li><strong>Recompute tracks:</strong> Re-runs the simulation with current inputs (useful if you change an orbit manually).</li>
-<li><strong>Export Contact Times (CSV):</strong> Saves all calculated data to a file.</li>
+<li><strong>Export CSV:</strong> Saves all calculated contact windows to a file. Timestamps carry millisecond precision and durations are displayed at 0.1 s resolution; both reflect the resolution of the model's solution, not real-world accuracy.</li>
 </ul>
 </li>
 </ul>
@@ -2422,13 +2425,14 @@ body {
 <ul>
 <li><strong>Elements (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.854em;vertical-align:-0.1944em;" class="strut"></span><span class="mord mathnormal">a</span><span class="mpunct">,</span><span style="margin-right:0.1667em;" class="mspace"></span><span class="mord mathnormal">e</span><span class="mpunct">,</span><span style="margin-right:0.1667em;" class="mspace"></span><span class="mord mathnormal">i</span><span class="mpunct">,</span><span style="margin-right:0.1667em;" class="mspace"></span><span class="minner">…</span></span></span></span>):</strong> Standard Keplerian inputs.</li>
 <li><strong>Min. elevation <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span class="mord mathnormal">ϵ</span></span></span></span>:</strong> Defines the size of the dashed FOV circle.</li>
-<li><strong>Visibility Toggles:</strong> Show/hide the Satellite marker, Track, FOV circle, or Horizon circle.</li>
+<li><strong>Visibility checkboxes:</strong> Show Satellite, Show Track, Show FOV, and Show Horizon are one-tap checkboxes. The sub-toggles gray out while the satellite itself is hidden.</li>
+<li><strong>Note:</strong> hand-editing any orbital element clears that satellite's TLE epoch anchor (typed elements are taken as valid at the simulation epoch; see 5.6).</li>
 </ul>
 <h3 class="atx" id="53-ground-station-panels">5.3 Ground Station Panels</h3>
 <p>The application supports two independent ground stations. Ground Station 1 (GS1) is enabled by default; Ground Station 2 (GS2) is disabled by default and can be enabled when needed.</p>
 <p>Each ground station panel contains:</p>
 <ul>
-<li><strong>Show Ground Station:</strong> Toggles visibility and enables access calculations for that station.</li>
+<li><strong>Show Ground Station:</strong> A checkbox that toggles visibility and enables access calculations for that station.</li>
 <li><strong>Lat/Lon:</strong> Station coordinates.</li>
 <li><strong>Min Elev. Mask:</strong> The minimum elevation angle (above the local horizon) required for a satellite to be considered "in view" from that station.</li>
 </ul>
@@ -2438,16 +2442,20 @@ body {
 <h3 class="atx" id="54-view-controls-right-side">5.4 View Controls (Right-Side)</h3>
 <ul>
 <li><strong>Projection:</strong> Toggle 2D Map vs. 3D Globe.</li>
+<li><strong>Trail (orbits):</strong> Sets how much ground track is drawn, in <em>orbital periods per satellite</em> (each satellite's window is computed from its own period, so mixed LEO/GEO scenarios both stay readable). Blank means the full time span; a number N draws a trailing window of N orbits ending at the current time; 0 shows markers only. Applies to both the 2D map and the 3D globe, and affects display only, never the computed tables or CSV.</li>
 <li><strong>Focus Mode (<code>↗</code>):</strong> Expands view to full window.</li>
+<li><strong>3D camera (mouse and touch):</strong> Drag with one finger or the mouse to rotate; pinch with two fingers or use the scroll wheel to zoom. Rotation is locked while Focus follows a satellite, but zoom still works.</li>
 <li><strong>3D Controls:</strong><ul>
 <li><strong>Reset Camera:</strong> Re-centers the view.</li>
 <li><strong>Focus:</strong> Automatically follows Sat 1 or Sat 2.</li>
-<li><strong>Inertial View:</strong><ul>
+<li><strong>Terminator:</strong> Shows the day/night boundary on the globe.</li>
+<li><strong>LOS link:</strong> Draws the inter-satellite link line whenever line of sight exists.</li>
+<li><strong>Inertial:</strong><ul>
 <li><em>ON:</em> Orbital tracks are fixed in space; Earth rotates underneath (Physically correct).</li>
 <li><em>OFF:</em> Camera rotates with the Earth (ECEF view).</li>
 </ul>
 </li>
-<li><strong>Show Elements:</strong> Toggles the HUD showing live orbital elements (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.8778em;vertical-align:-0.1944em;" class="strut"></span><span class="mord">Ω</span><span class="mpunct">,</span><span style="margin-right:0.1667em;" class="mspace"></span><span style="margin-right:0.03588em;" class="mord mathnormal">ω</span></span></span></span>).</li>
+<li><strong>Elements:</strong> Toggles the HUD showing live orbital elements (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.8778em;vertical-align:-0.1944em;" class="strut"></span><span class="mord">Ω</span><span class="mpunct">,</span><span style="margin-right:0.1667em;" class="mspace"></span><span style="margin-right:0.03588em;" class="mord mathnormal">ω</span></span></span></span>).</li>
 </ul>
 </li>
 </ul>
@@ -2477,8 +2485,8 @@ body {
 <ol>
 <li>Click <strong>"▶ Import from TLE"</strong> at the bottom of a satellite panel (or press <code>T</code> for Sat 1, <code>Shift+T</code> for Sat 2).</li>
 <li>Paste a TLE (2 or 3 lines) into the text area.</li>
-<li>Optionally check <strong>"Set simulation epoch to TLE epoch"</strong> to sync the simulation start time.</li>
-<li>Click <strong>"Apply TLE"</strong> to populate the orbital elements.</li>
+<li>Optionally check <strong>"Set simulation epoch to TLE epoch"</strong> to also move the simulation start time to the TLE's epoch.</li>
+<li>Click <strong>"Apply TLE"</strong> to populate the orbital elements. The elements are <strong>anchored at the TLE's own epoch</strong> and propagated (with J2 secular rates) onto the simulation timeline, whatever the simulation start time is. Errors and warnings appear as messages inside the panel rather than as popup dialogs.</li>
 </ol>
 <p><strong>Supported TLE format:</strong></p>
 <pre><code>ISS (ZARYA)             ← Optional name line (ignored)
@@ -2494,15 +2502,15 @@ body {
 <h4 class="atx" id="understanding-tle-epochs">Understanding TLE Epochs</h4>
 <p><strong>What is a TLE epoch?</strong></p>
 <p>Think of a TLE as a photograph of a satellite's orbit taken at a specific moment. That moment is called the "epoch." The TLE tells you exactly where the satellite was and how it was moving when the photograph was taken. Just like a photograph, a TLE captures a single instant in time.</p>
-<p><strong>The mismatch problem</strong></p>
-<p>Imagine you have two photographs of friends taken on different days. If you try to place them in the same scene, something will look wrong because they weren't actually together at the same time.</p>
-<p>The same thing happens with TLEs. Suppose:</p>
+<p><strong>The mismatch problem (and how the app handles it)</strong></p>
+<p>Imagine you have two photographs of friends taken on different days. To place them correctly in the same scene, you would need to account for how each person moved between their photo date and the scene date.</p>
+<p>That is exactly what the app does. Suppose:</p>
 <ul>
 <li>Satellite 1's TLE is from <strong>January 15th</strong></li>
 <li>Satellite 2's TLE is from <strong>January 20th</strong></li>
 <li>Your simulation starts on <strong>January 15th</strong></li>
 </ul>
-<p>Satellite 1 will be shown correctly because its TLE matches the simulation date. But Satellite 2 will appear where it <em>would have been</em> on January 20th, not where it <em>actually was</em> on January 15th. Over five days, a LEO satellite completes roughly 75 orbits, so the position error can be substantial.</p>
+<p>Each satellite is anchored at its <em>own</em> TLE epoch, and the propagator carries it forward or backward (orbital motion plus J2 precession) to every point on the simulation timeline. Both satellites are therefore placed consistently, even with mismatched TLE dates. The remaining caveat is model fidelity: over large gaps the J2-only model omits real effects (notably atmospheric drag for low orbits), so accuracy gradually degrades as the gap between the TLE epoch and the simulated times grows. Over five days a LEO satellite completes roughly 75 orbits, so even small unmodeled forces have room to accumulate.</p>
 <p><strong>Why positions drift over time</strong></p>
 <p>Satellites don't stay still. Between any two dates:</p>
 <ul>
@@ -2510,25 +2518,20 @@ body {
 <li>Earth's equatorial bulge causes the orbital plane to slowly rotate (RAAN drift)</li>
 <li>The orientation of the orbit's ellipse also shifts (argument of perigee drift)</li>
 </ul>
-<p>These effects accumulate. A TLE from last week won't accurately describe where a satellite is today.</p>
+<p>These effects accumulate. The app models the orbital motion and the J2 drifts exactly, but not drag or higher-order effects, so a TLE from last week describes today's orbit only approximately.</p>
 <p><strong>Normalized vs. raw TLEs</strong></p>
 <p>You may notice that some TLEs always show satellites starting at the equator. This happens because certain data providers "normalize" their TLEs so the epoch aligns with the satellite's ascending node (the moment it crosses the equator heading north). This is a processing choice, not a physical requirement.</p>
 <p>Raw, unprocessed TLEs from sources like <a href="https://celestrak.org">CelesTrak</a> or <a href="https://space-track.org">Space-Track</a> will show satellites at whatever position they occupied when the TLE was generated. Both types are valid; they're just different conventions.</p>
 <p><strong>Practical recommendations</strong></p>
 <ul>
-<li>When comparing two satellites, use TLEs with epochs within 1 day of each other</li>
-<li>Enable "Set simulation epoch to TLE epoch" for at least one satellite to anchor the simulation to real orbital data</li>
-<li>If you need both satellites positioned accurately, find TLEs from the same source generated on the same day</li>
-<li>For educational or demonstration purposes, exact epoch matching is less critical</li>
+<li>Fresh TLEs are best: keep the gap between each TLE's epoch and the times you simulate to a few days for LEO (drag matters most there); GEO tolerates much larger gaps</li>
+<li>Enable "Set simulation epoch to TLE epoch" for one satellite if you want the timeline to start on real orbital data</li>
+<li>Mismatched TLE epochs between the two satellites are handled automatically by per-satellite anchoring; they no longer need to match each other</li>
+<li>Hand-editing any element of a satellite clears its TLE anchor and reinterprets its elements at the simulation epoch</li>
 </ul>
-<p><strong>Caution: Dual epoch sync</strong></p>
-<p>If you enable "Set simulation epoch to TLE epoch" for <em>both</em> satellites and their TLE epochs differ, the behavior is "last write wins":</p>
-<ol>
-<li>Import TLE for Satellite 1 with epoch sync → simulation epoch becomes Satellite 1's TLE epoch</li>
-<li>Import TLE for Satellite 2 with epoch sync → simulation epoch is <em>overwritten</em> with Satellite 2's TLE epoch</li>
-</ol>
-<p>This means Satellite 1's elements (which were accurate at its TLE epoch) are now being propagated from a different epoch, which could introduce error. To avoid this, either use TLEs with matching epochs, or enable epoch sync for only one satellite.</p>
-<p>The app will warn you if a TLE's epoch differs from the simulation epoch by more than 1 day. After import, expand the TLE section to view the epoch for reference.</p>
+<p><strong>Note: Dual epoch sync</strong></p>
+<p>If you enable "Set simulation epoch to TLE epoch" for <em>both</em> satellites and their TLE epochs differ, the simulation <em>start time</em> follows the last import ("last write wins"). This is harmless to accuracy: each satellite remains anchored at its own TLE epoch regardless of where the timeline starts. The checkbox only chooses where the timeline begins.</p>
+<p>If a TLE's epoch differs from the simulation epoch by more than 7 days, the app shows a non-blocking note in the panel about model fidelity over large gaps; the import proceeds either way. After import, the panel displays "Anchored at TLE epoch" with the epoch for reference (expand the TLE section to see it).</p>
 <p><strong>Note:</strong> The TLE parser validates that the resulting orbit has perigee above Earth's surface. Invalid TLEs will display an error message.</p>
 <hr>
 <h2 class="atx" id="6-how-the-physics-works">6) How The Physics Works</h2>
@@ -2537,6 +2540,8 @@ body {
 <li><strong>ECI <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.3669em;" class="strut"></span><span class="mrel">↔</span></span></span></span> ECEF:</strong> Standard transformation using Greenwich Mean Sidereal Time (GMST).</li>
 <li><strong>Horizon/FOV:</strong> Calculated assuming a <strong>Spherical Earth</strong> radius (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.8333em;vertical-align:-0.15em;" class="strut"></span><span class="mord"><span style="margin-right:0.00773em;" class="mord mathnormal">R</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span style="height:0.3283em;" class="vlist"><span style="top:-2.55em;margin-left:-0.0077em;margin-right:0.05em;"><span style="height:2.7em;" class="pstrut"></span><span class="sizing reset-size6 size3 mtight"><span style="margin-right:0.05764em;" class="mord mathnormal mtight">E</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span style="height:0.15em;" class="vlist"><span></span></span></span></span></span></span><span style="margin-right:0.2778em;" class="mspace"></span><span class="mrel">=</span><span style="margin-right:0.2778em;" class="mspace"></span></span><span class="base"><span style="height:0.6444em;" class="strut"></span><span class="mord">6378.137</span></span></span></span> km).</li>
 <li><strong>LOS Test:</strong> Geometric intersection test between the satellite-to-satellite segment and the Earth sphere.</li>
+<li><strong>Per-satellite epochs:</strong> Each satellite propagates from its own anchor epoch (the TLE epoch if imported, otherwise the simulation epoch), with J2 secular rates applied over the elapsed time from that anchor.</li>
+<li><strong>Contact boundary refinement:</strong> Interval boundaries are first located on the sampled time grid, then refined by bisecting the access condition between the bracketing samples down to about 1 ms, so reported rise/set times and durations are not quantized to the step size. This removes the sampling error; the remaining error budget is set by the model itself (spherical Earth, sea-level stations, no refraction, no drag; see section 8). Boundaries at the very edge of the timeline (no bracketing sample) remain at the sample time.</li>
 </ul>
 <hr>
 <h2 class="atx" id="7-typical-workflows">7) Typical Workflows</h2>
@@ -2569,16 +2574,33 @@ body {
 <li><em>Note:</em> While visually sufficient for demos, mission-critical analysis should use high-fidelity software (STK, GMAT).</li>
 </ul>
 </li>
+<li><strong>TLE interpretation:</strong> TLE elements are treated as osculating Keplerian elements in the app's frame. The TEME reference frame and the Brouwer/Kozai mean-motion convention behind real TLEs are not modeled, which introduces small errors (a few kilometers in semi-major axis for LEO). Appropriate for education and demonstration; use SGP4-based tools when that matters.</li>
+<li><strong>Ground station altitude:</strong> Stations sit at sea level on the spherical Earth; site elevation is not an input. Access boundary times shift accordingly, most noticeably against low elevation masks.</li>
+<li><strong>Atmospheric refraction:</strong> Not modeled. Real radio and optical paths bend near the horizon, so geometric rise/set times differ from observed ones by seconds to tens of seconds at low masks.</li>
+<li><strong>Net effect on contact times:</strong> The bisection refinement means reported boundaries are exact for this model, but real-world pass-time accuracy is typically seconds to tens of seconds, dominated by the simplifications above and by TLE age.<ul>
+</ul>
+</li>
 </ul>
 <hr>
 <h2 class="atx" id="9-troubleshooting">9) Troubleshooting</h2>
 <ul>
 <li><strong>Blank Screen / No Tracks:</strong> Ensure your browser supports WebGL. Check that the Epoch is in a valid ISO-8601 format (e.g., <code>2025-01-01T12:00:00Z</code>).</li>
-<li><strong>Can't Rotate Globe:</strong> Check if <strong>Focus</strong> is set to a satellite. Set it to <strong>None</strong> to regain free manual control.</li>
+<li><strong>Can't Rotate Globe:</strong> Check if <strong>Focus</strong> is set to a satellite. Set it to <strong>None</strong> to regain free manual control. On touch devices, rotate with one finger and pinch with two.</li>
 <li><strong>"Custom" appears in Scenario box:</strong> This is normal. If you edit any physics parameter manually, the app switches the label to "Custom" to indicate the settings no longer match a preset.</li>
 </ul>
 <hr>
 <h2 class="atx" id="10-release-notes">10) Release Notes</h2>
+<p><strong>v1.4.0</strong></p>
+<ul>
+<li><strong>Physics:</strong> Contact interval boundaries are refined by bisection between time samples (sub-second precision within the model) instead of being quantized to the step size. Tables display durations at 0.1 s resolution; CSV timestamps carry milliseconds.</li>
+<li><strong>Physics:</strong> Per-satellite element epochs. TLE imports anchor each satellite at its own TLE epoch; two TLEs with different epochs are both honored. Hand edits or scenario loads clear the anchor.</li>
+<li><strong>Feature:</strong> Trail control unified and moved to the view header. Units are orbital periods per satellite; blank = full span; applies to both 2D and 3D views. Fixes the old bug where a trail of 0 silently became 30 minutes.</li>
+<li><strong>Mobile:</strong> 3D camera uses Pointer Events (one finger rotates, two fingers pinch-zoom); canvases size responsively (map 2:1, globe 1:1, capped at desktop sizes); 3D control pills and checkboxes render correctly on tablets; scrubbing no longer jitters the page.</li>
+<li><strong>UI:</strong> The ten Yes/No visibility dropdowns are now one-tap checkboxes with properly associated labels; all sidebar labels gained programmatic association. TLE errors and warnings appear inline in the panel instead of popup dialogs; the epoch-gap warning is now a non-blocking note (threshold 7 days).</li>
+<li><strong>UI:</strong> Buttons restyled with white text on palette-derived fills; focus ring recolored to the theme and switched to keyboard-only (focus-visible). Export button relabeled "Export CSV"; playback control relabeled "Speed (steps/frame)"; 3D pill labels shortened (Terminator, LOS link, Inertial, Elements). Map style control removed (textured globe is always used).</li>
+<li><strong>Fixes:</strong> Applying a TLE now correctly flips the scenario dropdown to "Custom"; interval tables use a scroll wrapper so columns size naturally; save-artifact residue removed from the markup.</li>
+<li><strong>Legal:</strong> Footer and LICENSE years updated to 2025-2026; contradictory "All rights reserved" phrasing removed alongside the MIT license statement.</li>
+</ul>
 <p><strong>v1.3.0</strong></p>
 <ul>
 <li><strong>Feature:</strong> Added <strong>Ground Station 2</strong>. The application now supports two independent ground stations, each with its own coordinates, elevation mask, and access calculations.</li>
@@ -2616,7 +2638,7 @@ body {
 <li><strong>Documentation:</strong> Updated User Manual to reflect the new workflow.</li>
 </ul>
 <p style="text-align: center; font-size: 0.9em; color: #888;">
-  Copyright &copy; 2025 Paul Henkiel. All rights reserved.
+  Copyright &copy; 2025-2026 Paul Henkiel. Licensed under the MIT License.
 </p>
 </article>
 </body>

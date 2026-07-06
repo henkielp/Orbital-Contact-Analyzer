@@ -1,5 +1,5 @@
 # Orbital Contact Analyzer
-**Current Version:** 1.3.0
+**Current Version:** 1.4.0
 
 ![Image](https://github.com/user-attachments/assets/5959ceea-4c6e-4665-add9-e1e4a1e0ea19)
 
@@ -22,7 +22,10 @@ This tool is designed as an educational platform to demonstrate core orbital mec
 *   **J2 Perturbation Model:** Includes J2 secular effects on RAAN (Ω) and Argument of Perigee (ω) for more realistic long-term orbit precession.
 *   **Interactive Visualizations:** View ground tracks, sensor footprints (FOV), local horizons, and communication links.
 *   **Dual Ground Stations:** Configure up to two independent ground stations, each with its own coordinates and elevation mask. GS1 is shown as a white triangle, GS2 as a green triangle.
-*   **Contact Analysis:** Automatically calculates and tables all line-of-sight (LOS) windows between satellites and access times from both ground stations.
+*   **Contact Analysis:** Automatically calculates and tables all line-of-sight (LOS) windows between satellites and access times from both ground stations. Interval boundaries are solved by bisection within the model instead of being quantized to the time step (see Limitations for real-world accuracy).
+*   **Per-Satellite TLE Epochs:** Each imported TLE anchors its satellite at the TLE's own epoch; two TLEs with different epochs are both propagated correctly onto the simulation timeline.
+*   **Trail Control:** Set how much ground track is drawn, in orbital periods per satellite (blank = full time span). Applies to both the 2D map and the 3D globe, so long simulations stay readable.
+*   **Touch & Mobile Support:** One finger rotates the 3D globe, two fingers pinch-zoom, and the layout adapts to tablets and phones.
 *   **Data Export:** A single click exports all computed contact data to a CSV file.
 *   **Fully Offline:** Runs entirely in your browser with no external network access required. All logic is self-contained in the HTML file.
 *   **Physically Correct Inertial View:** The 3D view can fix the orbital planes in space to correctly show the Earth rotating underneath.
@@ -32,7 +35,7 @@ This tool is designed as an educational platform to demonstrate core orbital mec
 No installation is needed. This is a single-file application.
 
 1.  Download the index.html file from this repository.
-2.  Open the file in a modern desktop web browser (Chrome, Firefox, Edge, or Safari).
+2.  Open the file in a modern web browser (Chrome, Firefox, Edge, or Safari) on desktop, tablet, or phone.
 
 ## Documentation
 
@@ -42,7 +45,7 @@ A complete user manual is available for detailed instructions on all features, c
 * **➡️ [View / Download the PDF Version](User-Manual.pdf)**
 
 **System Requirements:**
-*   A modern desktop browser with WebGL enabled.
+*   A modern browser with WebGL enabled, on desktop, tablet, or phone. Touch is fully supported.
 *   8+ GB RAM is recommended for simulations with long durations or small time steps.
 
 ## Purpose & Scope
@@ -66,10 +69,25 @@ This is an educational tool, not a validated, mission-critical analysis suite. I
 *   **Higher-Order Gravity Fields.**
 *   **Earth Oblateness (WGS-84):** Does not use a standard ellipsoid, which may introduce small errors in ground track positions.
 *   **Terrain:** Access calculations do not account for terrain that could block visibility.
+*   **SGP4/TEME TLE Fidelity:** Imported TLE elements are treated as osculating Keplerian values in the app's frame. The TEME reference frame and the Brouwer/Kozai mean-motion convention are not modeled, which introduces small errors (a few kilometers in semi-major axis for LEO).
+*   **Ground Station Altitude:** All stations sit at sea level on the spherical Earth; site elevation is not an input. This shifts access geometry, especially against low elevation masks.
+*   **Atmospheric Refraction:** Not modeled. Near the horizon, refraction bends real signal paths by a degree or more, so real rise/set times differ from the geometric ones by seconds to tens of seconds.
 
 ---
 
 ## Changelog
+
+### v1.4.0
+Physics, mobile, and UI release. Developed in collaboration with Claude (Anthropic).
+
+*   **Sub-Second Contact Boundaries:** LOS and ground station access interval start/end times are now refined by bisection between time samples, locating the model's access transitions to about 1 ms instead of rounding them to the step size. This removes the sampling error (previously up to one full time step); the remaining error is set by the model physics, not the grid. Tables display durations at 0.1 s resolution and CSV timestamps carry milliseconds, which is the resolution of the model's solution, not a real-world accuracy claim (see Limitations).
+*   **Per-Satellite TLE Epochs:** Applying a TLE anchors that satellite's elements at the TLE's own epoch, and the propagator (with J2 secular rates) carries them onto the simulation timeline. Two TLEs with different epochs are both honored. This supersedes the epoch-mismatch caveat described under v1.2.0 below. Hand-editing a satellite's elements, or loading a scenario preset, clears its anchor. The old blocking >1 day warning is replaced by a non-blocking >7 day model-fidelity note shown inline in the panel.
+*   **Trail Control:** The former 3D-only "Trail (min)" input moved to the view header, now governs both the 2D map and the 3D globe, and uses orbital periods per satellite as its unit. Blank = full time span (the default); a number N draws a trailing window of N orbits. Also fixes a bug where a trail of 0 silently became 30 minutes.
+*   **Touch & Mobile:** The 3D camera uses Pointer Events: one finger rotates, two fingers pinch-zoom, and the scroll wheel still works. Canvas heights are responsive (map 2:1, globe 1:1, capped at desktop sizes). Tablet rendering bugs in the 3D controls row and checkboxes are fixed, and scrubbing no longer jitters the page.
+*   **UI Modernization:** The ten Yes/No visibility dropdowns are now one-tap checkboxes; every sidebar label is programmatically associated with its control; TLE errors and warnings appear inline instead of as popup dialogs; the interval tables use a scroll wrapper so columns size naturally; buttons are restyled with white text on palette-derived fills with verified contrast; the focus ring follows the theme and appears for keyboard navigation only.
+*   **Renames & Removals:** "Export Contact Times (CSV)" is now "Export CSV"; the playback control is "Speed (steps/frame)"; the 3D pill labels are shortened (Terminator, LOS link, Inertial, Elements); the Map style control is removed (the textured globe is always used).
+*   **Fixes:** Applying a TLE now correctly switches the scenario dropdown to "Custom"; save-artifact residue removed from the markup.
+*   **Documentation & Legal:** User Manual updated (HTML and PDF); copyright years updated to 2025-2026 in the app footer, source header, and LICENSE; the contradictory "All rights reserved" phrasing removed alongside the MIT statement.
 
 ### v1.3.0
 New feature release adding a second ground station:

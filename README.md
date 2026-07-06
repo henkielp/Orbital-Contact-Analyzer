@@ -1,7 +1,7 @@
 # Orbital Contact Analyzer
-**Current Version:** 1.4.0
+**Current Version:** 1.4.1
 
-![Orbital Contact Analyzer v1.4.0 screenshot](https://github.com/user-attachments/assets/f789d566-724d-4a5c-bed7-c0c969d6e8c6)
+![Image](https://github.com/user-attachments/assets/5959ceea-4c6e-4665-add9-e1e4a1e0ea19)
 
 ## Live Demo
 
@@ -42,7 +42,7 @@ No installation is needed. This is a single-file application.
 A complete user manual is available for detailed instructions on all features, controls, and workflows. Choose your preferred format:
 
 * **➡️[Read the Web Version (Live HTML)](https://henkielp.github.io/Orbital-Contact-Analyzer/User-Manual.html)**
-* **➡️ [View / Download the PDF Version](https://henkielp.github.io/Orbital-Contact-Analyzer/User-Manual.pdf)**
+* **➡️ [View / Download the PDF Version](User-Manual.pdf)**
 
 **System Requirements:**
 *   A modern browser with WebGL enabled, on desktop, tablet, or phone. Touch is fully supported.
@@ -76,6 +76,11 @@ This is an educational tool, not a validated, mission-critical analysis suite. I
 ---
 
 ## Changelog
+
+### v1.4.1
+Visual clarity release. Developed in collaboration with Claude (Anthropic).
+
+*   **Dotted Horizon Circles:** Horizon circles are now drawn dotted in both the 2D map and 3D globe, and the legend separates Track (solid) from Horizon (dotted); FOV circles remain dashed. This keeps very large horizon circles (a Molniya satellite near apogee has an ~82° horizon radius) from reading as extra orbital tracks when they wrap the antimeridian.
 
 ### v1.4.0
 Physics, mobile, and UI release. Developed in collaboration with Claude (Anthropic).

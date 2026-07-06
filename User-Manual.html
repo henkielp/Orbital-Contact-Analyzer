@@ -1,7 +1,7 @@
 <!--
-    User Manual: Orbital Contact Analyzer version 1.4.0
+    User Manual: Orbital Contact Analyzer version 1.2.0
 
-    Copyright (c) 2025-2026 Paul Henkiel
+    Copyright (c) 2025 Paul Henkiel
 
     This document is licensed under the same terms as the software it describes.
     Refer to the MIT License in the project repository for details.
@@ -11,7 +11,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Orbital Contact Analyzer - User Manual</title>
+  <title></title>
   <style>
   @font-face {
   font-family: octicons-link;
@@ -2338,7 +2338,7 @@ body {
 </head>
 <body>
   <article class="markdown-body"><h1 class="atx" id="orbital-contact-analyzer--user-manual">Orbital Contact Analyzer — User Manual</h1>
-<p><strong>Version:</strong> v1.4.0
+<p><strong>Version:</strong> v1.4.1
 <strong>Scope:</strong> Single-file, offline HTML app for simulating two Earth satellites and up to two ground stations. The application uses a J2 perturbation model, renders 2D/3D views, visualizes sensor footprints and local horizons, and computes both satellite-to-satellite line-of-sight (LOS) and satellite-to-ground-station access intervals.</p>
 <hr>
 <h2 class="atx" id="1-overview">1) Overview</h2>
@@ -2425,7 +2425,7 @@ body {
 <ul>
 <li><strong>Elements (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.854em;vertical-align:-0.1944em;" class="strut"></span><span class="mord mathnormal">a</span><span class="mpunct">,</span><span style="margin-right:0.1667em;" class="mspace"></span><span class="mord mathnormal">e</span><span class="mpunct">,</span><span style="margin-right:0.1667em;" class="mspace"></span><span class="mord mathnormal">i</span><span class="mpunct">,</span><span style="margin-right:0.1667em;" class="mspace"></span><span class="minner">…</span></span></span></span>):</strong> Standard Keplerian inputs.</li>
 <li><strong>Min. elevation <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span class="mord mathnormal">ϵ</span></span></span></span>:</strong> Defines the size of the dashed FOV circle.</li>
-<li><strong>Visibility checkboxes:</strong> Show Satellite, Show Track, Show FOV, and Show Horizon are one-tap checkboxes. The sub-toggles gray out while the satellite itself is hidden.</li>
+<li><strong>Visibility checkboxes:</strong> Show Satellite, Show Track, Show FOV, and Show Horizon are one-tap checkboxes. The sub-toggles gray out while the satellite itself is hidden. Line styles distinguish the overlays: tracks are solid, horizon circles dotted, FOV circles dashed.</li>
 <li><strong>Note:</strong> hand-editing any orbital element clears that satellite's TLE epoch anchor (typed elements are taken as valid at the simulation epoch; see 5.6).</li>
 </ul>
 <h3 class="atx" id="53-ground-station-panels">5.3 Ground Station Panels</h3>
@@ -2590,6 +2590,10 @@ body {
 </ul>
 <hr>
 <h2 class="atx" id="10-release-notes">10) Release Notes</h2>
+<p><strong>v1.4.1</strong></p>
+<ul>
+<li><strong>Visual:</strong> Horizon circles are drawn dotted in both views and the legend separates Track (solid) from Horizon (dotted); FOV circles remain dashed. Prevents large horizon circles (Molniya near apogee spans most of a hemisphere) from being mistaken for additional orbital tracks when they wrap the antimeridian.</li>
+</ul>
 <p><strong>v1.4.0</strong></p>
 <ul>
 <li><strong>Physics:</strong> Contact interval boundaries are refined by bisection between time samples (sub-second precision within the model) instead of being quantized to the step size. Tables display durations at 0.1 s resolution; CSV timestamps carry milliseconds.</li>

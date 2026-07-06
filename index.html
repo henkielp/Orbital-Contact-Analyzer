@@ -1,8 +1,17 @@
 <!DOCTYPE html>
 <!--
-  Orbital Contact Analyzer v1.4.0 (draft)
+  Orbital Contact Analyzer v1.4.1
   
-  New Features in this version:
+  New Features in this version (v1.4.1):
+  - Horizon circles are now drawn dotted in both views (2D dash pattern
+    [2,5]; 3D point ring), and the legend splits "Track/Horizon" into
+    separate Track (solid) and Horizon (dotted) entries. Rationale: a
+    horizon circle is an instantaneous geometric locus, not a path through
+    time; for high-apogee orbits (Molniya at apogee has an ~82 deg angular
+    radius) a solid horizon circle wraps the antimeridian and reads as
+    extra orbital tracks. FOV circles remain dashed [6,6].
+  
+  Previous Features (v1.4.0):
   - Sub-second contact boundaries: LOS and ground-station access interval
     start/end times are refined by bisection between the bracketing time
     samples instead of being quantized to the Δt grid. This solves the
@@ -187,6 +196,7 @@
   .swatch{width:14px;height:3px;border-radius:2px;background:#888}
   .swatch.round{height:10px;width:10px;border-radius:50%}
   .swatch.dash{background:none; border-top:2px dashed var(--horizon); height:0;}
+  .swatch.dot{background:none; border-top:2px dotted var(--horizon); height:0;}
   .swatch.triangle{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:10px solid white;background:transparent;position:relative;}
   .swatch.triangle::after{content:'';position:absolute;top:1.5px;left:-6px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:9px solid var(--panel);}
   .swatch.triangle2{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:10px solid var(--gs2);background:transparent;position:relative;}
@@ -549,9 +559,11 @@ footer {
         </div>
         <div id="coord" class="pill mono" style="position: absolute; display: none; z-index: 5;"></div>
         <div class="legend">
-          <span class="key"><span class="swatch" style="background:var(--track1)"></span>Sat 1 Track/Horizon</span>
+          <span class="key"><span class="swatch" style="background:var(--track1)"></span>Sat 1 Track</span>
+          <span class="key"><span class="swatch dot" style="border-top-color:var(--track1); width: 18px;"></span>Sat 1 Horizon</span>
           <span class="key"><span class="swatch dash" style="border-top-color:var(--track1); width: 18px;"></span>Sat 1 FOV/GS Link</span>
-          <span class="key"><span class="swatch" style="background:var(--track2)"></span>Sat 2 Track/Horizon</span>
+          <span class="key"><span class="swatch" style="background:var(--track2)"></span>Sat 2 Track</span>
+          <span class="key"><span class="swatch dot" style="border-top-color:var(--track2); width: 18px;"></span>Sat 2 Horizon</span>
           <span class="key"><span class="swatch dash" style="border-top-color:var(--track2); width: 18px;"></span>Sat 2 FOV/GS Link</span>
           <span class="key"><span class="swatch" style="background:var(--good); width: 18px;"></span>LOS Link</span>
           <span class="key"><span class="swatch round" style="background:#89b4ff"></span>Sat 1 Marker</span>
@@ -1641,20 +1653,20 @@ function drawGSMarker(lonDeg, latDeg, color = '#fff') {
  * @param {number} lon Center longitude [rad].
  * @param {?number} psi Angular radius [rad]. If null, nothing is drawn.
  * @param {string} color The color of the circle.
- * @param {boolean} [dashed=false] If true, draws a dashed line.
+ * @param {?number[]} [dashPattern=null] Canvas dash pattern (e.g. [6,6] for
+ *   dashes, [2,5] for dots); null draws a solid line. v1.4.0: horizon
+ *   circles are dotted so an instantaneous geometric circle cannot be
+ *   mistaken for a ground track (a Molniya horizon spans most of a
+ *   hemisphere and reads as an extra orbit when drawn solid).
  * @returns {void}
  */
-function drawFootprint(lat, lon, psi, color, dashed = false){
+function drawFootprint(lat, lon, psi, color, dashPattern = null){
   if(psi==null) return; const W=ui.canvas.width, H=ui.canvas.height;
   const poly = footprintSmallCircle(lat, lon, psi, 240);
   ctx.save();
   ctx.strokeStyle=color;
   ctx.lineWidth=1.5;
-  if(dashed) {
-    ctx.setLineDash([6, 6]);
-  } else {
-    ctx.setLineDash([]);
-  }
+  ctx.setLineDash(dashPattern || []);
   ctx.beginPath();
   let started=false; let prevLon=null;
   for(let k=0;k<poly.lats.length;k++){
@@ -1790,14 +1802,14 @@ function draw(){
   // current positions and footprints
   if (state.el1.visible) {
     const lon1 = wrapLon(r2d(state.lon1[k])), lat1=r2d(state.lat1[k]);
-    if(state.el1.fov_on) drawFootprint(state.lat1[k], state.lon1[k], state.psi1[k], colorTrack1, true);
-    if(state.el1.horizon_on) drawFootprint(state.lat1[k], state.lon1[k], state.horizon1[k], colorTrack1, false);
+    if(state.el1.fov_on) drawFootprint(state.lat1[k], state.lon1[k], state.psi1[k], colorTrack1, [6, 6]);
+    if(state.el1.horizon_on) drawFootprint(state.lat1[k], state.lon1[k], state.horizon1[k], colorTrack1, [2, 5]);
     drawMarker(lon1, lat1, '#89b4ff');
   }
   if (state.el2.visible) {
     const lon2 = wrapLon(r2d(state.lon2[k])), lat2=r2d(state.lat2[k]);
-    if(state.el2.fov_on) drawFootprint(state.lat2[k], state.lon2[k], state.psi2[k], colorTrack2, true);
-    if(state.el2.horizon_on) drawFootprint(state.lat2[k], state.lon2[k], state.horizon2[k], colorTrack2, false);
+    if(state.el2.fov_on) drawFootprint(state.lat2[k], state.lon2[k], state.psi2[k], colorTrack2, [6, 6]);
+    if(state.el2.horizon_on) drawFootprint(state.lat2[k], state.lon2[k], state.horizon2[k], colorTrack2, [2, 5]);
     drawMarker(lon2, lat2, '#ffb86b');
   }
 
@@ -2499,8 +2511,8 @@ function drawGlobe(){ if(!state.gl.init) initGlobe(); if(!state.gl.init) return;
   const N=240;
   if(state.el1.visible && state.el1.fov_on && state.psi1[k]!=null){ const rv=ringVerts(state.lat1[k], state.lon1[k], state.psi1[k], N); gl.bindBuffer(gl.ARRAY_BUFFER, state.gl.bufs.fov); gl.bufferData(gl.ARRAY_BUFFER, rv, gl.DYNAMIC_DRAW); drawDashed(state.gl.bufs.fov, 0, N+1, colorTrack1_rgb, MVP_ground); }
   if(state.el2.visible && state.el2.fov_on && state.psi2[k]!=null){ const rv=ringVerts(state.lat2[k], state.lon2[k], state.psi2[k], N); gl.bindBuffer(gl.ARRAY_BUFFER, state.gl.bufs.fov); gl.bufferData(gl.ARRAY_BUFFER, rv, gl.DYNAMIC_DRAW); drawDashed(state.gl.bufs.fov, 0, N+1, colorTrack2_rgb, MVP_ground); }
-  if(state.el1.visible && state.el1.horizon_on && state.horizon1[k]!=null){ const rv=ringVerts(state.lat1[k], state.lon1[k], state.horizon1[k], N); gl.bindBuffer(gl.ARRAY_BUFFER, state.gl.bufs.fov); gl.bufferData(gl.ARRAY_BUFFER, rv, gl.DYNAMIC_DRAW); drawLine(state.gl.bufs.fov, 0, N+1, colorTrack1_rgb, false, 0, MVP_ground); }
-  if(state.el2.visible && state.el2.horizon_on && state.horizon2[k]!=null){ const rv=ringVerts(state.lat2[k], state.lon2[k], state.horizon2[k], N); gl.bindBuffer(gl.ARRAY_BUFFER, state.gl.bufs.fov); gl.bufferData(gl.ARRAY_BUFFER, rv, gl.DYNAMIC_DRAW); drawLine(state.gl.bufs.fov, 0, N+1, colorTrack2_rgb, false, 0, MVP_ground); }
+  if(state.el1.visible && state.el1.horizon_on && state.horizon1[k]!=null){ const rv=ringVerts(state.lat1[k], state.lon1[k], state.horizon1[k], N); gl.bindBuffer(gl.ARRAY_BUFFER, state.gl.bufs.fov); gl.bufferData(gl.ARRAY_BUFFER, rv, gl.DYNAMIC_DRAW); drawLine(state.gl.bufs.fov, 0, N+1, colorTrack1_rgb, true, 2.5, MVP_ground); } // v1.4.0: dotted (points)
+  if(state.el2.visible && state.el2.horizon_on && state.horizon2[k]!=null){ const rv=ringVerts(state.lat2[k], state.lon2[k], state.horizon2[k], N); gl.bindBuffer(gl.ARRAY_BUFFER, state.gl.bufs.fov); gl.bufferData(gl.ARRAY_BUFFER, rv, gl.DYNAMIC_DRAW); drawLine(state.gl.bufs.fov, 0, N+1, colorTrack2_rgb, true, 2.5, MVP_ground); } // v1.4.0: dotted (points)
 }
   // Projection toggle & 3D controls
 function setProjection(mode){

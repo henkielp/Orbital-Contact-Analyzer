@@ -1,7 +1,7 @@
 # Orbital Contact Analyzer
-**Current Version:** 1.4.1
+**Current Version:** 1.4.2
 
-![Orbital Contact Analyzer v1.4.1 screenshot](https://github.com/user-attachments/assets/f789d566-724d-4a5c-bed7-c0c969d6e8c6)
+![Image](https://github.com/user-attachments/assets/5959ceea-4c6e-4665-add9-e1e4a1e0ea19)
 
 ## Live Demo
 
@@ -76,6 +76,11 @@ This is an educational tool, not a validated, mission-critical analysis suite. I
 ---
 
 ## Changelog
+
+### v1.4.2
+Access semantics release. Developed in collaboration with Claude (Anthropic).
+
+*   **Behavior Change: Effective Elevation Threshold.** Ground station access now requires the satellite's elevation to satisfy both the station's Min Elev. Mask and the satellite's Min. elevation ε, i.e. max(mask, ε). The ε setting defines the satellite's service cone (the same threshold that draws its FOV circle), so a pass below ε is visible but not serviceable. Consequences: access intervals, tables, CSV exports, footer badges, and link lines may show fewer or shorter contacts than v1.4.1 whenever ε exceeds a station's mask, and a station with access now always lies inside that satellite's FOV circle.
 
 ### v1.4.1
 Visual clarity release. Developed in collaboration with Claude (Anthropic).

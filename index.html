@@ -1,8 +1,18 @@
 <!DOCTYPE html>
 <!--
-  Orbital Contact Analyzer v1.4.1
+  Orbital Contact Analyzer v1.4.2
   
-  New Features in this version (v1.4.1):
+  New Features in this version (v1.4.2):
+  - BEHAVIOR CHANGE: Ground station access now requires the elevation to
+    satisfy BOTH the station's mask and the satellite's minimum elevation
+    epsilon: effective threshold = max(mask, epsilon). Epsilon defines the
+    satellite's service cone (the same threshold as its FOV circle), so a
+    contact below epsilon is geometrically visible but not serviceable.
+    Access intervals, tables, CSV exports, badges, and link lines may all
+    show fewer/shorter contacts than before when epsilon > station mask.
+    A station with access now always lies inside the satellite's FOV ring.
+  
+  Previous Features (v1.4.1):
   - Horizon circles are now drawn dotted in both views (2D dash pattern
     [2,5]; 3D point ring), and the legend splits "Track/Horizon" into
     separate Track (solid) and Horizon (dotted) entries. Rationale: a
@@ -1228,14 +1238,23 @@ for(let k=0;k<N;k++) state.times[k] = new Date(t0ms + k*p.dt*1000);
     // Note: Small epsilon tolerance (1e-9 rad ≈ 0.00006°) handles floating-point precision
     // at boundary conditions, particularly the 90° elevation mask verification test.
     const GS_EL_EPS = 1e-9;
+    // v1.4.2: a usable contact must satisfy BOTH thresholds: the station's
+    // elevation mask (site constraint) and the satellite's minimum elevation
+    // epsilon (its service cone, the same threshold that defines the FOV
+    // circle). The effective mask is the stricter of the two, so a station
+    // can never show access while sitting outside the satellite's FOV ring.
+    const em_gs1_s1 = Math.max(state.gs.el_mask, state.el1.min_el);
+    const em_gs1_s2 = Math.max(state.gs.el_mask, state.el2.min_el);
+    const em_gs2_s1 = Math.max(state.gs2.el_mask, state.el1.min_el);
+    const em_gs2_s2 = Math.max(state.gs2.el_mask, state.el2.min_el);
     if (r_gs_ecef) {
         const r_los1 = [r1e[0]-r_gs_ecef[0], r1e[1]-r_gs_ecef[1], r1e[2]-r_gs_ecef[2]];
         const sin_el1 = dot(up_gs_ecef, r_los1) / norm(r_los1);
-        state.gs_access1[k] = Math.asin(clamp(sin_el1, -1, 1)) >= (state.gs.el_mask - GS_EL_EPS);
+        state.gs_access1[k] = Math.asin(clamp(sin_el1, -1, 1)) >= (em_gs1_s1 - GS_EL_EPS);
 
         const r_los2 = [r2e[0]-r_gs_ecef[0], r2e[1]-r_gs_ecef[1], r2e[2]-r_gs_ecef[2]];
         const sin_el2 = dot(up_gs_ecef, r_los2) / norm(r_los2);
-        state.gs_access2[k] = Math.asin(clamp(sin_el2, -1, 1)) >= (state.gs.el_mask - GS_EL_EPS);
+        state.gs_access2[k] = Math.asin(clamp(sin_el2, -1, 1)) >= (em_gs1_s2 - GS_EL_EPS);
     } else {
         state.gs_access1[k] = false;
         state.gs_access2[k] = false;
@@ -1245,11 +1264,11 @@ for(let k=0;k<N;k++) state.times[k] = new Date(t0ms + k*p.dt*1000);
     if (r_gs2_ecef) {
         const r_los1 = [r1e[0]-r_gs2_ecef[0], r1e[1]-r_gs2_ecef[1], r1e[2]-r_gs2_ecef[2]];
         const sin_el1 = dot(up_gs2_ecef, r_los1) / norm(r_los1);
-        state.gs2_access1[k] = Math.asin(clamp(sin_el1, -1, 1)) >= (state.gs2.el_mask - GS_EL_EPS);
+        state.gs2_access1[k] = Math.asin(clamp(sin_el1, -1, 1)) >= (em_gs2_s1 - GS_EL_EPS);
 
         const r_los2 = [r2e[0]-r_gs2_ecef[0], r2e[1]-r_gs2_ecef[1], r2e[2]-r_gs2_ecef[2]];
         const sin_el2 = dot(up_gs2_ecef, r_los2) / norm(r_los2);
-        state.gs2_access2[k] = Math.asin(clamp(sin_el2, -1, 1)) >= (state.gs2.el_mask - GS_EL_EPS);
+        state.gs2_access2[k] = Math.asin(clamp(sin_el2, -1, 1)) >= (em_gs2_s2 - GS_EL_EPS);
     } else {
         state.gs2_access1[k] = false;
         state.gs2_access2[k] = false;
@@ -1291,12 +1310,12 @@ for(let k=0;k<N;k++) state.times[k] = new Date(t0ms + k*p.dt*1000);
   // Compute contiguous access intervals from boolean arrays, refined by bisection.
   state.losIntervals = (state.el1.visible && state.el2.visible) ? computeAccessIntervals(state.times, state.r1.map((_,k)=>los(state.r1[k], state.r2[k])), losPred) : [];
   state.gsAccessIntervals = state.gs.visible ? [
-    ...computeAccessIntervals(state.times, state.gs_access1, makeGsPred(r1At, r_gs_ecef, up_gs_ecef, state.gs.el_mask)).map(p => ({gs:1, sat:1, ...p})),
-    ...computeAccessIntervals(state.times, state.gs_access2, makeGsPred(r2At, r_gs_ecef, up_gs_ecef, state.gs.el_mask)).map(p => ({gs:1, sat:2, ...p}))
+    ...computeAccessIntervals(state.times, state.gs_access1, makeGsPred(r1At, r_gs_ecef, up_gs_ecef, Math.max(state.gs.el_mask, state.el1.min_el))).map(p => ({gs:1, sat:1, ...p})),
+    ...computeAccessIntervals(state.times, state.gs_access2, makeGsPred(r2At, r_gs_ecef, up_gs_ecef, Math.max(state.gs.el_mask, state.el2.min_el))).map(p => ({gs:1, sat:2, ...p}))
   ].sort((a,b) => a.start - b.start) : [];
   state.gs2AccessIntervals = state.gs2.visible ? [
-    ...computeAccessIntervals(state.times, state.gs2_access1, makeGsPred(r1At, r_gs2_ecef, up_gs2_ecef, state.gs2.el_mask)).map(p => ({gs:2, sat:1, ...p})),
-    ...computeAccessIntervals(state.times, state.gs2_access2, makeGsPred(r2At, r_gs2_ecef, up_gs2_ecef, state.gs2.el_mask)).map(p => ({gs:2, sat:2, ...p}))
+    ...computeAccessIntervals(state.times, state.gs2_access1, makeGsPred(r1At, r_gs2_ecef, up_gs2_ecef, Math.max(state.gs2.el_mask, state.el1.min_el))).map(p => ({gs:2, sat:1, ...p})),
+    ...computeAccessIntervals(state.times, state.gs2_access2, makeGsPred(r2At, r_gs2_ecef, up_gs2_ecef, Math.max(state.gs2.el_mask, state.el2.min_el))).map(p => ({gs:2, sat:2, ...p}))
   ].sort((a,b) => a.start - b.start) : [];
   
   // Update UI.

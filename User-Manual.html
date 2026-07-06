@@ -2338,7 +2338,7 @@ body {
 </head>
 <body>
   <article class="markdown-body"><h1 class="atx" id="orbital-contact-analyzer--user-manual">Orbital Contact Analyzer — User Manual</h1>
-<p><strong>Version:</strong> v1.4.1
+<p><strong>Version:</strong> v1.4.2
 <strong>Scope:</strong> Single-file, offline HTML app for simulating two Earth satellites and up to two ground stations. The application uses a J2 perturbation model, renders 2D/3D views, visualizes sensor footprints and local horizons, and computes both satellite-to-satellite line-of-sight (LOS) and satellite-to-ground-station access intervals.</p>
 <hr>
 <h2 class="atx" id="1-overview">1) Overview</h2>
@@ -2369,7 +2369,7 @@ body {
 <ul>
 <li><strong>Orbital Elements (per satellite):</strong><ul>
 <li><span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span class="mord mathnormal">a</span></span></span></span> (km), <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span class="mord mathnormal">e</span></span></span></span>, <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.6595em;" class="strut"></span><span class="mord mathnormal">i</span></span></span></span> (deg), <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.6833em;" class="strut"></span><span class="mord">Ω</span></span></span></span> (RAAN), <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span style="margin-right:0.03588em;" class="mord mathnormal">ω</span></span></span></span> (ArgP), <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.6833em;" class="strut"></span><span style="margin-right:0.10903em;" class="mord mathnormal">M</span></span></span></span> (Mean Anomaly).</li>
-<li><strong>Min. elevation <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span class="mord mathnormal">ϵ</span></span></span></span> (deg):</strong> Defines the sensor footprint (Field of View).</li>
+<li><strong>Min. elevation <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span class="mord mathnormal">ϵ</span></span></span></span> (deg):</strong> The satellite's minimum service elevation: it defines the sensor/communication footprint (FOV circle) and also gates ground station access (see below).</li>
 </ul>
 </li>
 <li><strong>Ground Stations:</strong> Up to two points on the Earth’s surface, each defined by Latitude, Longitude, and a Min. Elevation Mask (deg) used to calculate access. Ground Station 1 (GS1) is shown as a white triangle; Ground Station 2 (GS2) is shown as a green triangle.</li>
@@ -2424,7 +2424,7 @@ body {
 <h3 class="atx" id="52-satellite-panels">5.2 Satellite Panels</h3>
 <ul>
 <li><strong>Elements (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.854em;vertical-align:-0.1944em;" class="strut"></span><span class="mord mathnormal">a</span><span class="mpunct">,</span><span style="margin-right:0.1667em;" class="mspace"></span><span class="mord mathnormal">e</span><span class="mpunct">,</span><span style="margin-right:0.1667em;" class="mspace"></span><span class="mord mathnormal">i</span><span class="mpunct">,</span><span style="margin-right:0.1667em;" class="mspace"></span><span class="minner">…</span></span></span></span>):</strong> Standard Keplerian inputs.</li>
-<li><strong>Min. elevation <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span class="mord mathnormal">ϵ</span></span></span></span>:</strong> Defines the size of the dashed FOV circle.</li>
+<li><strong>Min. elevation <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.4306em;" class="strut"></span><span class="mord mathnormal">ϵ</span></span></span></span>:</strong> Defines the size of the dashed FOV circle, and participates in access: a ground station contact requires elevation above max(station mask, satellite ε).</li>
 <li><strong>Visibility checkboxes:</strong> Show Satellite, Show Track, Show FOV, and Show Horizon are one-tap checkboxes. The sub-toggles gray out while the satellite itself is hidden. Line styles distinguish the overlays: tracks are solid, horizon circles dotted, FOV circles dashed.</li>
 <li><strong>Note:</strong> hand-editing any orbital element clears that satellite's TLE epoch anchor (typed elements are taken as valid at the simulation epoch; see 5.6).</li>
 </ul>
@@ -2434,7 +2434,7 @@ body {
 <ul>
 <li><strong>Show Ground Station:</strong> A checkbox that toggles visibility and enables access calculations for that station.</li>
 <li><strong>Lat/Lon:</strong> Station coordinates.</li>
-<li><strong>Min Elev. Mask:</strong> The minimum elevation angle (above the local horizon) required for a satellite to be considered "in view" from that station.</li>
+<li><strong>Min Elev. Mask:</strong> The station-side minimum elevation angle (above the local horizon). Access additionally requires the satellite's own Min. elevation ε to be met; the effective threshold is the stricter of the two, max(mask, ε).</li>
 </ul>
 <p>On the 2D map and 3D globe, GS1 appears as a <strong>white</strong> triangle and GS2 appears as a <strong>green</strong> triangle. When a satellite has access to a ground station, a dashed link line is drawn between them in the satellite's color.</p>
 <p>The <strong>Ground Station Access Intervals</strong> table (below the map) merges intervals from both stations in chronological order. Each row indicates which station (GS1 or GS2) and which satellite are involved. The footer displays separate real-time badges for each station.</p>
@@ -2540,6 +2540,7 @@ body {
 <li><strong>ECI <span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.3669em;" class="strut"></span><span class="mrel">↔</span></span></span></span> ECEF:</strong> Standard transformation using Greenwich Mean Sidereal Time (GMST).</li>
 <li><strong>Horizon/FOV:</strong> Calculated assuming a <strong>Spherical Earth</strong> radius (<span class="katex"><span class="katex-mathml"></span><span aria-hidden="true" class="katex-html"><span class="base"><span style="height:0.8333em;vertical-align:-0.15em;" class="strut"></span><span class="mord"><span style="margin-right:0.00773em;" class="mord mathnormal">R</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span style="height:0.3283em;" class="vlist"><span style="top:-2.55em;margin-left:-0.0077em;margin-right:0.05em;"><span style="height:2.7em;" class="pstrut"></span><span class="sizing reset-size6 size3 mtight"><span style="margin-right:0.05764em;" class="mord mathnormal mtight">E</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span style="height:0.15em;" class="vlist"><span></span></span></span></span></span></span><span style="margin-right:0.2778em;" class="mspace"></span><span class="mrel">=</span><span style="margin-right:0.2778em;" class="mspace"></span></span><span class="base"><span style="height:0.6444em;" class="strut"></span><span class="mord">6378.137</span></span></span></span> km).</li>
 <li><strong>LOS Test:</strong> Geometric intersection test between the satellite-to-satellite segment and the Earth sphere.</li>
+<li><strong>GS Access condition:</strong> A satellite-station pair has access when the satellite's elevation above the station's local horizon meets the effective threshold max(station mask, satellite ε). The station mask models site constraints; ε models the satellite's service cone. As a corollary, any station with access lies inside that satellite's FOV circle.</li>
 <li><strong>Per-satellite epochs:</strong> Each satellite propagates from its own anchor epoch (the TLE epoch if imported, otherwise the simulation epoch), with J2 secular rates applied over the elapsed time from that anchor.</li>
 <li><strong>Contact boundary refinement:</strong> Interval boundaries are first located on the sampled time grid, then refined by bisecting the access condition between the bracketing samples down to about 1 ms, so reported rise/set times and durations are not quantized to the step size. This removes the sampling error; the remaining error budget is set by the model itself (spherical Earth, sea-level stations, no refraction, no drag; see section 8). Boundaries at the very edge of the timeline (no bracketing sample) remain at the sample time.</li>
 </ul>
@@ -2585,11 +2586,16 @@ body {
 <h2 class="atx" id="9-troubleshooting">9) Troubleshooting</h2>
 <ul>
 <li><strong>Blank Screen / No Tracks:</strong> Ensure your browser supports WebGL. Check that the Epoch is in a valid ISO-8601 format (e.g., <code>2025-01-01T12:00:00Z</code>).</li>
+<li><strong>Station has no access despite being inside the horizon circle:</strong> Access requires elevation above max(station mask, satellite ε), not merely visibility above the horizon. Check both the station's Min Elev. Mask and the satellite's Min. elevation ε.</li>
 <li><strong>Can't Rotate Globe:</strong> Check if <strong>Focus</strong> is set to a satellite. Set it to <strong>None</strong> to regain free manual control. On touch devices, rotate with one finger and pinch with two.</li>
 <li><strong>"Custom" appears in Scenario box:</strong> This is normal. If you edit any physics parameter manually, the app switches the label to "Custom" to indicate the settings no longer match a preset.</li>
 </ul>
 <hr>
 <h2 class="atx" id="10-release-notes">10) Release Notes</h2>
+<p><strong>v1.4.2</strong></p>
+<ul>
+<li><strong>Behavior change:</strong> Ground station access now requires elevation above max(station mask, satellite ε). The ε setting is the satellite's service cone (the same threshold as its FOV circle), so passes below ε are visible but not serviceable. Access intervals, tables, CSV, badges, and link lines may show fewer or shorter contacts than before when ε exceeds a station's mask; a station with access now always lies inside the satellite's FOV circle.</li>
+</ul>
 <p><strong>v1.4.1</strong></p>
 <ul>
 <li><strong>Visual:</strong> Horizon circles are drawn dotted in both views and the legend separates Track (solid) from Horizon (dotted); FOV circles remain dashed. Prevents large horizon circles (Molniya near apogee spans most of a hemisphere) from being mistaken for additional orbital tracks when they wrap the antimeridian.</li>

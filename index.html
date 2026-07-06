@@ -1,8 +1,101 @@
 <!DOCTYPE html>
 <!--
-  Orbital Contact Analyzer v1.3.0
+  Orbital Contact Analyzer v1.4.0 (draft)
   
   New Features in this version:
+  - Sub-second contact boundaries: LOS and ground-station access interval
+    start/end times are refined by bisection between the bracketing time
+    samples instead of being quantized to the Δt grid. This solves the
+    MODEL's access transitions to ~1 ms; real-world accuracy remains limited
+    by the model physics (spherical sea-level Earth, no refraction, no drag).
+    Tables display durations at 0.1 s resolution; CSV export carries full
+    millisecond timestamps. Timeline-edge boundaries (no bracket) are left
+    at the sample time.
+  - Per-satellite element epochs: applying a TLE anchors that satellite's
+    elements at the TLE's own epoch, and the propagator carries them (with
+    J2 secular rates) to the simulation timeline. Two TLEs with different
+    epochs are now both honored. Hand-editing a satellite's elements, or
+    loading a scenario preset, clears its anchor (typed elements are taken
+    as valid at the simulation epoch). The old >1 day epoch-mismatch warning
+    is replaced by a >7 day propagation-accuracy note.
+  - Bug fix: applying a TLE now correctly flips the scenario dropdown to
+    "Custom" (previously referenced an undefined ui.scenarioSel).
+  - Mobile: 3D globe camera now uses Pointer Events (works with mouse, touch,
+    and pen). One finger rotates, two fingers pinch-zoom, wheel still zooms.
+    touch-action:none on the globe keeps the browser from claiming gestures.
+  - Mobile: canvas heights are now responsive. The 2D map uses aspect-ratio
+    2:1 and the globe 1:1, both capped at the previous 560px, so desktop
+    layout is unchanged while phones get proportional heights. Focus Mode
+    overrides the cap and continues to fill the viewport.
+  - UI: the ten Yes/No visibility dropdowns (satellites: show/track/FOV/
+    horizon; ground stations 1 and 2) are now checkboxes with properly
+    associated labels: one tap instead of two, a shorter sidebar, and
+    label-click toggling. Sub-toggles still gray out when their satellite
+    is hidden. Same element IDs, so external references remain valid.
+  - UI: header readout no longer wraps mid-timestamp (Index and Time are
+    unbreakable units); Export button label shortened to "Export CSV" with
+    the full description in its tooltip; footer year updated to 2025-2026.
+  - Accessibility: every sidebar label is now programmatically associated
+    with its control (for= attributes on 22 labels; checkboxes wrap their
+    inputs). Labels are clickable/tappable to focus their fields.
+  - Cleanup: removed save-artifact residue captured from a live DOM session
+    (hardcoded coordinate-pill position and frozen text, baked-in canvas
+    dimensions, frozen status/index/time values). All are populated at
+    runtime by resizeCanvas()/recompute()/draw().
+  - Tables: the scrolling interval tables now use a .tbl-scroll wrapper div
+    (max-height + overflow) instead of the tbody{display:block} hack, so
+    columns size naturally to their content; sticky headers preserved.
+  - TLE panel: alert()/confirm() dialogs replaced with inline messages
+    (.tle-msg, error and warning styles) that persist when the section
+    collapses. The >7 day epoch-gap check is now a non-blocking note since
+    per-satellite anchoring makes the import correct regardless.
+  
+  - Checkboxes (and radios) exempted from the global input width:100%.
+    WebKit stretched their layout boxes, which pushed pill labels out of
+    the 3D-view pills on iPad and defeated row wrapping; Blink happened to
+    resolve the percentage as auto, masking the bug on desktop.
+  - Scrub jitter on tablets addressed: the header Index/Time readout uses
+    tabular-nums so its width no longer changes every step (which caused
+    reflow), and the scrub slider sets touch-action:none so dragging the
+    thumb cannot also pan the page.
+  - 3D controls row fixed for tablets: pills no longer shrink below their
+    label width (white-space:nowrap lets the row wrap whole pills), inner
+    selects/buttons size to content instead of the global width:100%, and
+    the checkbox labels drop the redundant "Show" (Terminator, LOS link,
+    Inertial, Elements) with full descriptions in tooltips. The Projection
+    select in the view header likewise sizes to content. The map caption
+    hides below 900px width to reclaim vertical space on tablets/phones.
+  - Map style control removed from the UI. The procedural-grid render path
+    remains in the code but dormant; state.gl.mapStyle is fixed at 'tex'
+    since the Earth texture is embedded and always available.
+  - Trail control unified and switched to orbits: the former 3D-only
+    "Trail (min)" input moved to the view header and now governs both the
+    2D map and the 3D globe. Units are orbital periods PER SATELLITE
+    (T = 2*pi/n_bar), so mixed LEO/GEO scenarios window sensibly. Blank =
+    full time span (the default, preserving historical 2D behavior);
+    numeric N = trailing window of N orbits ending at the current time.
+    Fixes the old falsy-zero parse where entering 0 silently became 30 min.
+    Display-only: physics, tables, and CSV export are unaffected. Side
+    benefit: removes a readElements() DOM parse that ran every 3D frame.
+  - Footer reworded to remove the contradiction between "All rights
+    reserved" and the MIT grant; copyright years synced to 2025-2026 in
+    the footer, this header, and the LICENSE file.
+  - Buttons restyled with white text on fills darkened along the theme
+    hues: Run #1d8929 (from --good, AA 4.5), Export and Recompute #2c6bff
+    (from --accent, AA 4.5), Reset #bb7c00 (from --warn, 3.5: a deliberate
+    compromise to keep the amber character; #a16c00 is the full-AA
+    alternative), Pause #3a4468 (navy-family gray, 9.5). All are one-line
+    token swaps. Focus ring recolored from the foreign #3157ff to the
+    theme ink and switched to :focus-visible, so it appears for keyboard
+    navigation and text-input focus but no longer lingers on buttons
+    after mouse or touch clicks.
+  - "Playback speed (x real-time steps per frame)" label shortened to
+    "Speed (steps/frame)" so it fits one line on narrow screens; the
+    explanation moved to a tooltip. The old wording was also inaccurate:
+    the value is steps per animation frame, and the real-time multiple
+    depends on both the time step and the display refresh rate.
+  
+  Previous Features (v1.3.0):
   - Ground Station 2: Second independent ground station with its own coordinates,
     elevation mask, and access calculations
     - Disabled by default, enable via "Show Ground Station 2" dropdown
@@ -32,7 +125,7 @@
   5. Fixed naming inconsistency: Renamed internal 'M' references to 'nu' for True Anomaly
      (HTML IDs: s1_M→s1_nu, s2_M→s2_nu; UI object: .M→.nu; SCENARIOS: M:→nu:)
   
-  Copyright (c) 2025 Paul Henkiel. Licensed under MIT License.
+  Copyright (c) 2025-2026 Paul Henkiel. Licensed under MIT License.
 -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -65,8 +158,13 @@
   .grid.cols-3{grid-template-columns:repeat(3,1fr)}
 
   label{font-size:12px;color:var(--muted)}
+  /* v1.4.0: inline checkbox toggles (replaces the Yes/No selects) */
+  label.chk{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none;padding:4px 0}
+  label.chk input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex:none}
+  label.chk:has(input:disabled){opacity:.45;cursor:default}
   input,button,select,textarea{width:100%;padding:8px 10px;border-radius:10px;border:1px solid #24305a;background:#0c1330;color:var(--ink)}
-  input:focus,select:focus,button:focus{outline:2px solid #3157ff;outline-offset:1px}
+  input[type=checkbox],input[type=radio]{width:auto;flex:none;padding:0}
+  input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
   input:disabled, select:disabled { opacity: 0.5; cursor: not-allowed; }
   button{cursor:pointer;transition:.15s transform ease, .15s opacity ease;}
   button:hover{transform:translateY(-1px)}
@@ -83,7 +181,7 @@
 
   /* --- Canvas & Map --- */
   #canvasWrap{position:relative}
-  #map{width:100%;height:560px;border-bottom-left-radius:14px;border-bottom-right-radius:14px;display:block}
+  #map{width:100%;aspect-ratio:2/1;height:auto;max-height:560px;border-bottom-left-radius:14px;border-bottom-right-radius:14px;display:block}
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:10px 14px;border-top:1px solid #1b254a}
   .key{display:flex;align-items:center;gap:6px}
   .swatch{width:14px;height:3px;border-radius:2px;background:#888}
@@ -98,14 +196,23 @@
   table{width:100%;border-collapse:collapse}
   th,td{border-bottom:1px solid #1b254a;padding:8px 6px;font-size:12px}
   th{color:#cdd6ff;text-align:left;position:sticky;top:0;background:var(--panel)}
-  tbody{display:block;max-height:160px;overflow:auto}
-  thead, tbody tr{display:table;width:100%;table-layout:fixed}
+  /* v1.4.0: scrolling via a wrapper div; columns size naturally to content
+     and the sticky header row stays visible inside the scroll container. */
+  .tbl-scroll{max-height:200px;overflow:auto}
   .right{text-align:right}
   .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
 
   .footer{padding:10px 14px;border-top:1px solid #1b254a;color:var(--muted);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
 
-  .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #2a3255;background:#0d1533;padding:4px 10px;border-radius:999px}
+  .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #2a3255;background:#0d1533;padding:4px 10px;border-radius:999px;white-space:nowrap}
+  /* v1.4.0: controls inside the 3D row and view header size to content;
+     the global width:100% rule made selects fight their pills on tablets. */
+  .gl-controls .row select, .gl-controls .row button{width:auto}
+  #view-header select{width:auto}
+  /* v1.4.0: the caption is documentation, not a control; hide it on
+     tablet/phone widths to reclaim vertical space. */
+  @media (max-width: 900px){ #view-caption{display:none} }
+  #idx,#idxMax,#tcur{font-variant-numeric:tabular-nums}
 
   /* --- TLE Import Collapsible --- */
   .tle-section{border-top:1px solid #1b254a;margin-top:10px;padding-top:10px}
@@ -115,6 +222,11 @@
   .tle-section.expanded .tle-toggle .arrow{transform:rotate(90deg)}
   .tle-content{display:none;margin-top:10px}
   .tle-section.expanded .tle-content{display:block}
+  /* v1.4.0: inline TLE messages replace alert()/confirm() dialogs. Placed
+     outside .tle-content so they stay visible when the section collapses. */
+  .tle-msg{display:none;margin-top:8px;padding:6px 10px;border-radius:8px;font-size:12px;border:1px solid transparent}
+  .tle-msg.err{display:block;color:var(--bad);border-color:var(--bad);background:rgba(255,107,107,.08)}
+  .tle-msg.warn{display:block;color:var(--warn);border-color:var(--warn);background:rgba(255,204,102,.08)}
   .tle-content textarea{height:80px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;resize:vertical}
   .tle-content .tle-options{display:flex;align-items:center;gap:8px;margin:8px 0;font-size:12px;color:var(--muted)}
   .tle-content .tle-options input[type="checkbox"]{width:auto;margin:0}
@@ -122,7 +234,7 @@
   .tle-content .tle-info .mono{color:var(--ink)}
 
   /* --- 3D Globe --- */
-  #globe{width:100%;height:560px;display:none;border-bottom-left-radius:14px;border-bottom-right-radius:14px}
+  #globe{width:100%;aspect-ratio:1/1;height:auto;max-height:560px;touch-action:none;display:none;border-bottom-left-radius:14px;border-bottom-right-radius:14px}
   .gl-controls{display:none;padding:8px 14px;border-top:1px solid #1b254a;color:var(--muted);font-size:12px}
   .gl-controls .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .gl-controls input[type="checkbox"]{transform:translateY(1px)}
@@ -158,6 +270,8 @@
   }
   body.focus-mode #map, body.focus-mode #globe {
       height: 100%;
+      max-height: none;   /* v1.4.0: override the responsive cap in Focus Mode */
+      aspect-ratio: auto; /* v1.4.0: fill the viewport, ignore the base ratio */
       flex-grow: 1;
       border-radius: 0;
   }
@@ -188,17 +302,24 @@
 <style>
   /* --- Component Overrides: Semantic Button Colors --- */
   :root{
-    --btn-run:#22c55e;        /* green: Run */
-    --btn-pause:#6b7280;      /* gray: Pause */
-    --btn-reset:#f59e0b;      /* amber: Reset (caution) */
-    --btn-export:#6366f1;     /* indigo: Export */
-    --btn-recompute:#3b82f6;  /* blue: Recompute */
+    /* v1.4.0: buttons reuse the root theme tokens instead of foreign hexes.
+       Run/Reset mark state changes (go/caution); Export and Recompute share
+       the accent as output-producing actions; Pause falls back to .ghost. */
+    /* v1.4.0: fills darkened along their own hues to carry white text.
+       Derived from the theme tokens: --good -> #1d8929 (AA 4.5 with white),
+       --accent -> #2c6bff (AA 4.5), --warn -> #bb7c00 (3.5, a deliberate
+       compromise to keep Reset's amber character; full AA would need the
+       ochre #a16c00). Root tokens are unchanged elsewhere in the app. */
+    --btn-run: #1d8929;          /* Run: go */
+    --btn-pause: #3a4468;        /* Pause: quiet dark gray, navy family */
+    --btn-reset: #bb7c00;        /* Reset: caution */
+    --btn-accent: #2c6bff;       /* Export / Recompute: produce output */
   }
-  #btnRun{background:var(--btn-run)!important;color:#fff!important;border:none!important;}
-  #btnPause{background:var(--btn-pause)!important;color:#fff!important;border:none!important;}
-  #btnReset{background:var(--btn-reset)!important;color:#fff!important;border:none!important;}
-  #btnExport{background:var(--btn-export)!important;color:#fff!important;border:none!important;}
-  #btnRecompute{background:var(--btn-recompute)!important;color:#fff!important;border:none!important;}
+  #btnRun,#btnPause,#btnReset,#btnExport,#btnRecompute{color:#fff!important;border:none!important;}
+  #btnRun{background:var(--btn-run)!important;}
+  #btnPause{background:var(--btn-pause)!important;}
+  #btnReset{background:var(--btn-reset)!important;}
+  #btnExport,#btnRecompute{background:var(--btn-accent)!important;}
   #btnRun:hover,#btnPause:hover,#btnReset:hover,#btnExport:hover,#btnRecompute:hover{filter:brightness(1.1);}
   #btnRun:disabled,#btnPause:disabled,#btnReset:disabled,#btnExport:disabled,#btnRecompute:disabled{opacity:.55;cursor:not-allowed;}
   /* --- Footer Styles --- */
@@ -230,7 +351,7 @@ footer {
 
         <!-- Scenario Preset Dropdown -->
         <div style="margin-bottom: 12px;">
-          <label>Load Scenario</label>
+          <label for="scenarioSelect">Load Scenario</label>
           <select id="scenarioSelect">
             <option value="custom">Custom / Current</option>
             <option value="leo" selected="">LEO Formation (Default)</option>
@@ -241,7 +362,7 @@ footer {
         </div>
         
         <div class="grid cols-2">
-<div style="grid-column:1 / span 2"><label>Epoch (UTC, ISO‑8601)</label><input id="sim_epoch" type="text"></div>
+<div style="grid-column:1 / span 2"><label for="sim_epoch">Epoch (UTC, ISO‑8601)</label><input id="sim_epoch" type="text"></div>
 <div>
             <label for="dt">Step Δt (s)</label>
             <input id="dt" type="number" min="0.1" step="0.1" value="30">
@@ -251,7 +372,7 @@ footer {
             <input id="dur" type="number" min="1" step="1" value="120">
           </div>
           <div>
-            <label for="speed">Playback speed (× real‑time steps per frame)</label>
+            <label for="speed" title="Simulation steps advanced per animation frame">Speed (steps/frame)</label>
             <input id="speed" type="number" min="1" step="1" value="1">
           </div>
         </div>
@@ -261,7 +382,7 @@ footer {
             <button id="btnReset" class="warn">↺ Reset</button>
         </div>
         <div class="row" style="margin-top:8px">
-            <button id="btnExport" class="ghost">Export Contact Times (CSV)</button>
+            <button id="btnExport" class="ghost" title="Export contact times (CSV)">Export CSV</button>
             <button id="btnRecompute" class="ghost">Recompute tracks</button>
         </div>
 
@@ -273,10 +394,10 @@ footer {
         <div class="body">
             <h2>Ground Station 1</h2>
             <div class="grid cols-3">
-                <div style="grid-column: 1 / span 3;"><label>Show Ground Station 1</label><select id="gs_visible"><option value="1" selected="">Yes</option><option value="0">No</option></select></div>
-                <div><label>Latitude (°)</label><input id="gs_lat" type="number" min="-90" max="90" step="0.01" value="28.57"></div>
-                <div><label>Longitude (°)</label><input id="gs_lon" type="number" min="-180" max="180" step="0.01" value="-80.65"></div>
-                <div><label>Min Elev. Mask (°)</label><input id="gs_el_mask" type="number" min="0" max="90" step="0.1" value="5"></div>
+                <div style="grid-column: 1 / span 3;"><label class="chk"><input type="checkbox" id="gs_visible" checked /> Show Ground Station 1</label></div>
+                <div><label for="gs_lat">Latitude (°)</label><input id="gs_lat" type="number" min="-90" max="90" step="0.01" value="28.57"></div>
+                <div><label for="gs_lon">Longitude (°)</label><input id="gs_lon" type="number" min="-180" max="180" step="0.01" value="-80.65"></div>
+                <div><label for="gs_el_mask">Min Elev. Mask (°)</label><input id="gs_el_mask" type="number" min="0" max="90" step="0.1" value="5"></div>
             </div>
         </div>
     </section>
@@ -286,10 +407,10 @@ footer {
         <div class="body">
             <h2>Ground Station 2</h2>
             <div class="grid cols-3">
-                <div style="grid-column: 1 / span 3;"><label>Show Ground Station 2</label><select id="gs2_visible"><option value="0" selected="">No</option><option value="1">Yes</option></select></div>
-                <div><label>Latitude (°)</label><input id="gs2_lat" type="number" min="-90" max="90" step="0.01" value="48.86"></div>
-                <div><label>Longitude (°)</label><input id="gs2_lon" type="number" min="-180" max="180" step="0.01" value="2.35"></div>
-                <div><label>Min Elev. Mask (°)</label><input id="gs2_el_mask" type="number" min="0" max="90" step="0.1" value="5"></div>
+                <div style="grid-column: 1 / span 3;"><label class="chk"><input type="checkbox" id="gs2_visible" /> Show Ground Station 2</label></div>
+                <div><label for="gs2_lat">Latitude (°)</label><input id="gs2_lat" type="number" min="-90" max="90" step="0.01" value="48.86"></div>
+                <div><label for="gs2_lon">Longitude (°)</label><input id="gs2_lon" type="number" min="-180" max="180" step="0.01" value="2.35"></div>
+                <div><label for="gs2_el_mask">Min Elev. Mask (°)</label><input id="gs2_el_mask" type="number" min="0" max="90" step="0.1" value="5"></div>
             </div>
         </div>
     </section>
@@ -299,22 +420,22 @@ footer {
       <div class="body">
         <h2>Satellite 1 (blue)</h2>
         <div class="grid cols-3">
-          <div><label>a (km)</label><input id="s1_a" type="number" step="1" value="6798"></div>
-          <div><label>e</label><input id="s1_e" type="number" step="0.0001" value="0.001"></div>
-          <div><label>i (deg)</label><input id="s1_i" type="number" step="0.01" value="51.64"></div>
-          <div><label>Ω RAAN (deg)</label><input id="s1_O" type="number" step="0.01" value="0"></div>
-          <div><label>ω argp (deg)</label><input id="s1_w" type="number" step="0.01" value="0"></div>
-          <div><label>ν₀ (deg)</label><input id="s1_nu" type="number" step="0.01" value="0"></div>
+          <div><label for="s1_a">a (km)</label><input id="s1_a" type="number" step="1" value="6798"></div>
+          <div><label for="s1_e">e</label><input id="s1_e" type="number" step="0.0001" value="0.001"></div>
+          <div><label for="s1_i">i (deg)</label><input id="s1_i" type="number" step="0.01" value="51.64"></div>
+          <div><label for="s1_O">Ω RAAN (deg)</label><input id="s1_O" type="number" step="0.01" value="0"></div>
+          <div><label for="s1_w">ω argp (deg)</label><input id="s1_w" type="number" step="0.01" value="0"></div>
+          <div><label for="s1_nu">ν₀ (deg)</label><input id="s1_nu" type="number" step="0.01" value="0"></div>
         </div>
         <div class="grid cols-2" style="margin-top:6px">
-            <div><label>Min. elevation ε (deg)</label><input id="s1_el" type="number" step="0.1" value="10"></div>
+            <div><label for="s1_el">Min. elevation ε (deg)</label><input id="s1_el" type="number" step="0.1" value="10"></div>
             <div></div> <!-- Spacer -->
         </div>
         <div class="grid cols-2" style="margin-top:6px">
-          <div><label>Show Satellite</label><select id="s1_visible"><option value="1" selected="">Yes</option><option value="0">No</option></select></div>
-          <div><label>Show Track</label><select id="s1_track_on"><option value="1" selected="">Yes</option><option value="0">No</option></select></div>
-          <div><label>Show FOV</label><select id="s1_fov_on"><option value="1">Yes</option><option value="0" selected="">No</option></select></div>
-          <div><label>Show Horizon</label><select id="s1_horizon_on"><option value="1" selected="">Yes</option><option value="0">No</option></select></div>
+          <div><label class="chk"><input type="checkbox" id="s1_visible" checked /> Show Satellite</label></div>
+          <div><label class="chk"><input type="checkbox" id="s1_track_on" checked /> Show Track</label></div>
+          <div><label class="chk"><input type="checkbox" id="s1_fov_on" /> Show FOV</label></div>
+          <div><label class="chk"><input type="checkbox" id="s1_horizon_on" checked /> Show Horizon</label></div>
         </div>
         <!-- TLE Import Section -->
         <div class="tle-section" id="tle-section-1">
@@ -328,9 +449,10 @@ footer {
             </div>
             <button class="ghost" onclick="applyTLE(1)">Apply TLE</button>
             <div class="tle-info" id="tle-info-1" style="display:none">
-              TLE Epoch: <span class="mono" id="tle-epoch-display-1"></span>
+              Anchored at TLE epoch: <span class="mono" id="tle-epoch-display-1"></span>
             </div>
           </div>
+          <div class="tle-msg" id="tle-msg-1"></div>
         </div>
       </div>
     </section>
@@ -340,22 +462,22 @@ footer {
       <div class="body">
         <h2 style="margin-top:0px">Satellite 2 (orange)</h2>
         <div class="grid cols-3">
-          <div><label>a (km)</label><input id="s2_a" type="number" step="1" value="6898"></div>
-          <div><label>e</label><input id="s2_e" type="number" step="0.0001" value="0.002"></div>
-          <div><label>i (deg)</label><input id="s2_i" type="number" step="0.01" value="53"></div>
-          <div><label>Ω RAAN (deg)</label><input id="s2_O" type="number" step="0.01" value="30"></div>
-          <div><label>ω argp (deg)</label><input id="s2_w" type="number" step="0.01" value="40"></div>
-          <div><label>ν₀ (deg)</label><input id="s2_nu" type="number" step="0.01" value="180"></div>
+          <div><label for="s2_a">a (km)</label><input id="s2_a" type="number" step="1" value="6898"></div>
+          <div><label for="s2_e">e</label><input id="s2_e" type="number" step="0.0001" value="0.002"></div>
+          <div><label for="s2_i">i (deg)</label><input id="s2_i" type="number" step="0.01" value="53"></div>
+          <div><label for="s2_O">Ω RAAN (deg)</label><input id="s2_O" type="number" step="0.01" value="30"></div>
+          <div><label for="s2_w">ω argp (deg)</label><input id="s2_w" type="number" step="0.01" value="40"></div>
+          <div><label for="s2_nu">ν₀ (deg)</label><input id="s2_nu" type="number" step="0.01" value="180"></div>
         </div>
         <div class="grid cols-2" style="margin-top:6px">
-            <div><label>Min. elevation ε (deg)</label><input id="s2_el" type="number" step="0.1" value="10"></div>
+            <div><label for="s2_el">Min. elevation ε (deg)</label><input id="s2_el" type="number" step="0.1" value="10"></div>
             <div></div> <!-- Spacer -->
         </div>
         <div class="grid cols-2" style="margin-top:6px">
-          <div><label>Show Satellite</label><select id="s2_visible"><option value="1" selected="">Yes</option><option value="0">No</option></select></div>
-          <div><label>Show Track</label><select id="s2_track_on"><option value="1" selected="">Yes</option><option value="0">No</option></select></div>
-          <div><label>Show FOV</label><select id="s2_fov_on"><option value="1">Yes</option><option value="0" selected="">No</option></select></div>
-          <div><label>Show Horizon</label><select id="s2_horizon_on"><option value="1" selected="">Yes</option><option value="0">No</option></select></div>
+          <div><label class="chk"><input type="checkbox" id="s2_visible" checked /> Show Satellite</label></div>
+          <div><label class="chk"><input type="checkbox" id="s2_track_on" checked /> Show Track</label></div>
+          <div><label class="chk"><input type="checkbox" id="s2_fov_on" /> Show FOV</label></div>
+          <div><label class="chk"><input type="checkbox" id="s2_horizon_on" checked /> Show Horizon</label></div>
         </div>
         <!-- TLE Import Section -->
         <div class="tle-section" id="tle-section-2">
@@ -369,13 +491,14 @@ footer {
             </div>
             <button class="ghost" onclick="applyTLE(2)">Apply TLE</button>
             <div class="tle-info" id="tle-info-2" style="display:none">
-              TLE Epoch: <span class="mono" id="tle-epoch-display-2"></span>
+              Anchored at TLE epoch: <span class="mono" id="tle-epoch-display-2"></span>
             </div>
           </div>
+          <div class="tle-msg" id="tle-msg-2"></div>
         </div>
       </div>
        <div class="footer">
-        <span id="status">Computed 241 steps @ Δt=30s over 120 min.</span>
+        <span id="status"></span>
       </div>
     </section>
     </div>
@@ -385,17 +508,20 @@ footer {
       <div id="canvasWrap">
         <div id="view-header" class="body" style="padding:10px 14px 8px 14px;display:flex;justify-content:space-between;align-items:center; flex-wrap: wrap; gap: 8px;">
           <div>
-            <div class="small">Equirectangular map (no external tiles). Tracks for full duration; marker and FOV at current time.</div>
+            <div class="small" id="view-caption">Equirectangular map (no external tiles). Trail sets track length in orbits (blank = full); marker and FOV at current time.</div>
           </div>
-          <div class="small" style="display:inline-flex; align-items:center; gap: 8px;">
-            <span>Projection</span>
+          <div class="small" style="display:inline-flex; align-items:center; gap: 8px; flex-wrap: wrap;">
+            <span style="white-space:nowrap;">Projection</span>
             <select id="projection"><option value="2d" selected="">2D Map</option><option value="3d">3D Globe</option></select>
-            • Index <span id="idx">0</span> / <span id="idxMax">240</span>
-            • Time <span id="tcur">2026-02-08T06:28:38Z</span>
+            <label class="pill" style="white-space:nowrap;">Trail (orbits)
+              <input id="trail" type="number" min="0" step="0.5" placeholder="full" style="width:70px;margin-left:6px" title="Track length in orbital periods per satellite. Blank = full time span.">
+            </label>
+            <span style="white-space:nowrap;">• Index <span id="idx">0</span> / <span id="idxMax">0</span></span>
+            <span style="white-space:nowrap;">• Time <span id="tcur"></span></span>
             <button id="btnFocusMode" class="ghost" title="Enter Focus Mode">↗</button>
           </div>
         </div>
-        <canvas id="map" width="1263" height="560" aria-label="map canvas" style="display: block;"></canvas>
+        <canvas id="map" aria-label="map canvas"></canvas>
         <canvas id="globe" width="1" height="1" style="display:none;border-bottom-left-radius:14px;border-bottom-right-radius:14px"></canvas>
         <!-- HUD overlay for 3D orbital elements -->
         <div id="hud" style="display: none;">
@@ -412,22 +538,16 @@ footer {
                 <option value="s2">Sat 2</option>
               </select>
             </label>
-            <label class="pill"><input type="checkbox" id="chkTerm" checked=""> Show terminator</label>
-            <label class="pill"><input type="checkbox" id="chkLink" checked=""> Show link on LOS</label>
-            <label class="pill"><input type="checkbox" id="chkInertial"> Inertial view</label>
-            <label class="pill"><input type="checkbox" id="chkElements"> Show Elements</label>
-            <label class="pill">Map style
-              <select id="mapStyle"><option value="proc">Procedural grid</option><option value="tex" selected="">Textured</option></select>
-            </label>
-            <label class="pill">Trail (min)
-              <input id="trail" type="number" min="0" step="1" value="30" style="width:80px;margin-left:6px">
-            </label>
+            <label class="pill" title="Show the day/night terminator"><input type="checkbox" id="chkTerm" checked=""> Terminator</label>
+            <label class="pill" title="Draw the inter-satellite link when line of sight exists"><input type="checkbox" id="chkLink" checked=""> LOS link</label>
+            <label class="pill" title="Inertial (ECI) frame instead of Earth-fixed"><input type="checkbox" id="chkInertial"> Inertial</label>
+            <label class="pill" title="Show the orbital-elements HUD panels"><input type="checkbox" id="chkElements"> Elements</label>
           </div>
         </div>
         <div id="scrub-container" class="body" style="padding:8px 14px 6px 14px">
-          <input id="scrub" type="range" min="0" value="0" step="1" style="width:100%" max="240">
+          <input id="scrub" type="range" min="0" value="0" step="1" style="width:100%;touch-action:none" max="240">
         </div>
-        <div id="coord" class="pill mono" style="position: absolute; display: none; left: 488px; top: 113.016px; z-index: 5;">lat 57.53°, lon -44.32°</div>
+        <div id="coord" class="pill mono" style="position: absolute; display: none; z-index: 5;"></div>
         <div class="legend">
           <span class="key"><span class="swatch" style="background:var(--track1)"></span>Sat 1 Track/Horizon</span>
           <span class="key"><span class="swatch dash" style="border-top-color:var(--track1); width: 18px;"></span>Sat 1 FOV/GS Link</span>
@@ -443,7 +563,7 @@ footer {
       <div class="body">
         <h2>Line‑of‑Sight Intervals</h2>
         <div class="small">Computed between satellites across the whole time span.</div>
-        <div style="margin-top:8px">
+        <div class="tbl-scroll" style="margin-top:8px">
           <table>
             <thead>
               <tr><th>Start (UTC)</th><th>End (UTC)</th><th class="right">Duration (s)</th></tr>
@@ -455,7 +575,7 @@ footer {
       <div class="body">
         <h2>Ground Station Access Intervals</h2>
         <div class="small">Computed for each visible satellite and ground station across the whole time span.</div>
-        <div style="margin-top:8px">
+        <div class="tbl-scroll" style="margin-top:8px">
           <table>
             <thead>
               <tr><th>Station</th><th>Satellite</th><th>Start (UTC)</th><th>End (UTC)</th><th class="right">Duration (s)</th></tr>
@@ -796,6 +916,8 @@ const state = {
   times: [],      // Array of Date objects for each step
   el1: null,      // Parsed orbital elements for Satellite 1
   el2: null,      // Parsed orbital elements for Satellite 2
+  satEpoch1: null, // v1.4.0: element anchor epoch for Sat 1 (Date), or null = use sim epoch
+  satEpoch2: null, // v1.4.0: element anchor epoch for Sat 2 (Date), or null = use sim epoch
   gs: null,       // Parsed ground station 1 parameters
   gs2: null,      // Parsed ground station 2 parameters
   r1: [], r2: [],  // ECI position vectors for each step
@@ -901,15 +1023,16 @@ if(scenarioSel){
 
     // Update GS2 (Optional, default to disabled)
     if(data.gs2){
-        ui.gs2.visible.value = '1';
+        ui.gs2.visible.checked = true;
         ui.gs2.lat.value = data.gs2.lat;
         ui.gs2.lon.value = data.gs2.lon;
         ui.gs2.el_mask.value = data.gs2.mask;
     } else {
-        ui.gs2.visible.value = '0';
+        ui.gs2.visible.checked = false;
     }
 
     // Reset Simulation
+    clearSatEpoch(1); clearSatEpoch(2); // Preset elements are valid at the sim epoch
     state.running = false;
     ui.status.textContent = `Loaded ${key.toUpperCase()} scenario.`;
     recompute(); // Trigger calc and draw
@@ -930,6 +1053,26 @@ if(scenarioSel){
       });
   });
 }
+
+/**
+ * v1.4.0: Clears a satellite's TLE epoch anchor and hides its TLE info line.
+ * Called when the user hand-edits that satellite's orbital elements, since
+ * typed elements are interpreted as valid at the simulation epoch.
+ * @param {number} n Satellite number (1 or 2).
+ * @returns {void}
+ */
+function clearSatEpoch(n){
+  if(n===1) state.satEpoch1 = null; else state.satEpoch2 = null;
+  const info = document.getElementById('tle-info-'+n);
+  if(info) info.style.display = 'none';
+}
+// Hand edits to a satellite's elements drop its TLE anchor.
+[ui.s1.a, ui.s1.e, ui.s1.i, ui.s1.O, ui.s1.w, ui.s1.nu].forEach(inp => {
+  if(inp) inp.addEventListener('input', () => clearSatEpoch(1));
+});
+[ui.s2.a, ui.s2.e, ui.s2.i, ui.s2.O, ui.s2.w, ui.s2.nu].forEach(inp => {
+  if(inp) inp.addEventListener('input', () => clearSatEpoch(2));
+});
 
   // One-time startup: initialize Epoch from current UTC if empty
   if(!state._epochInitDone && ui.sim_epoch){
@@ -974,10 +1117,10 @@ function readElements(){
     const E = 2*Math.atan2(Math.sqrt(1-e)*s_nu, Math.sqrt(1+e)*c_nu);
     const M0 = ((E - e*Math.sin(E)) % TAU + TAU) % TAU;
     const min_el = d2r(+s.el.value);
-    const visible = s.visible.value === '1';
-    const track_on = s.track_on.value === '1';
-    const fov_on = s.fov_on.value==='1';
-    const horizon_on = s.horizon_on.value==='1';
+    const visible = s.visible.checked;
+    const track_on = s.track_on.checked;
+    const fov_on = s.fov_on.checked;
+    const horizon_on = s.horizon_on.checked;
 
     // Pre-calculate J2 secular rates for RAAN and ArgP precession.
     const n = Math.sqrt(MU / (a*a*a));
@@ -991,7 +1134,7 @@ function readElements(){
   }
   function packGS(g) {
       return {
-          visible: g.visible.value === '1',
+          visible: g.visible.checked,
           lat: +g.lat.value,
           lon: +g.lon.value,
           el_mask: d2r(+g.el_mask.value)
@@ -1017,7 +1160,12 @@ const p = readElements();
     } else {
       baseEpoch = new Date();
     }
-    state.t01 = baseEpoch; state.t02 = baseEpoch; state.t0 = baseEpoch;
+    state.t0 = baseEpoch;
+    // v1.4.0: Per-satellite element epochs. A satellite whose elements came
+    // from a TLE is propagated from that TLE's epoch; hand-entered elements
+    // are taken to be valid at the simulation epoch.
+    state.t01 = (state.satEpoch1 instanceof Date && !isNaN(+state.satEpoch1)) ? state.satEpoch1 : baseEpoch;
+    state.t02 = (state.satEpoch2 instanceof Date && !isNaN(+state.satEpoch2)) ? state.satEpoch2 : baseEpoch;
   })();
 state.el1 = p.el1; state.el2 = p.el2; state.gs = p.gs; state.gs2 = p.gs2;
   // Generate the timeline array of Date objects.
@@ -1113,15 +1261,30 @@ for(let k=0;k<N;k++) state.times[k] = new Date(t0ms + k*p.dt*1000);
   if(state.gl && state.gl.init){ updateTrackBuffers(); state.gl._trkInit = true; } else { state.gl._trkInit = false; }
 
 
-  // Compute contiguous access intervals from boolean arrays.
-  state.losIntervals = (state.el1.visible && state.el2.visible) ? computeAccessIntervals(state.times, state.r1.map((_,k)=>los(state.r1[k], state.r2[k]))) : [];
+  // v1.4.0: Continuous-time access predicates for boundary refinement.
+  // Each evaluates the same physics as the sampled loop above, but at an
+  // arbitrary epoch-millisecond time, so interval boundaries can be bisected
+  // to sub-second precision instead of being quantized to the Δt grid.
+  const t01ms = state.t01.getTime(), t02ms = state.t02.getTime();
+  const r1At = (tms) => rvAtTime(state.el1, tms, t01ms).r_eci;
+  const r2At = (tms) => rvAtTime(state.el2, tms, t02ms).r_eci;
+  const losPred = (tms) => los(r1At(tms), r2At(tms));
+  const makeGsPred = (rAt, r_gs, up_gs, mask) => (tms) => {
+    const re = eciToEcef(rAt(tms), new Date(tms));
+    const rl = [re[0]-r_gs[0], re[1]-r_gs[1], re[2]-r_gs[2]];
+    const sinEl = dot(up_gs, rl) / norm(rl);
+    return Math.asin(clamp(sinEl, -1, 1)) >= (mask - 1e-9);
+  };
+
+  // Compute contiguous access intervals from boolean arrays, refined by bisection.
+  state.losIntervals = (state.el1.visible && state.el2.visible) ? computeAccessIntervals(state.times, state.r1.map((_,k)=>los(state.r1[k], state.r2[k])), losPred) : [];
   state.gsAccessIntervals = state.gs.visible ? [
-    ...computeAccessIntervals(state.times, state.gs_access1).map(p => ({gs:1, sat:1, ...p})),
-    ...computeAccessIntervals(state.times, state.gs_access2).map(p => ({gs:1, sat:2, ...p}))
+    ...computeAccessIntervals(state.times, state.gs_access1, makeGsPred(r1At, r_gs_ecef, up_gs_ecef, state.gs.el_mask)).map(p => ({gs:1, sat:1, ...p})),
+    ...computeAccessIntervals(state.times, state.gs_access2, makeGsPred(r2At, r_gs_ecef, up_gs_ecef, state.gs.el_mask)).map(p => ({gs:1, sat:2, ...p}))
   ].sort((a,b) => a.start - b.start) : [];
   state.gs2AccessIntervals = state.gs2.visible ? [
-    ...computeAccessIntervals(state.times, state.gs2_access1).map(p => ({gs:2, sat:1, ...p})),
-    ...computeAccessIntervals(state.times, state.gs2_access2).map(p => ({gs:2, sat:2, ...p}))
+    ...computeAccessIntervals(state.times, state.gs2_access1, makeGsPred(r1At, r_gs2_ecef, up_gs2_ecef, state.gs2.el_mask)).map(p => ({gs:2, sat:1, ...p})),
+    ...computeAccessIntervals(state.times, state.gs2_access2, makeGsPred(r2At, r_gs2_ecef, up_gs2_ecef, state.gs2.el_mask)).map(p => ({gs:2, sat:2, ...p}))
   ].sort((a,b) => a.start - b.start) : [];
   
   // Update UI.
@@ -1140,16 +1303,61 @@ for(let k=0;k<N;k++) state.times[k] = new Date(t0ms + k*p.dt*1000);
  * @param {boolean[]} access_array Array of booleans indicating access at each step.
  * @returns {Array<{start: Date, end: Date}>} An array of interval objects.
  */
-function computeAccessIntervals(times, access_array){
-  const out=[]; let on=false; let start=null;
+function computeAccessIntervals(times, access_array, predicate){
+  // First pass: find coarse intervals as sample-index ranges [i0, i1]
+  // where access is true.
+  const idx=[]; let on=false; let i0=null;
   for(let k=0;k<times.length;k++){
     const ok = access_array[k];
-    if(ok && !on){ on=true; start=times[k]; }
-    else if(!ok && on){ on=false; out.push({start, end: times[k-1]}); start=null; }
+    if(ok && !on){ on=true; i0=k; }
+    else if(!ok && on){ on=false; idx.push([i0, k-1]); i0=null; }
   }
-  if(on) out.push({start, end: times[times.length-1]});
-  return out;
+  if(on) idx.push([i0, times.length-1]);
+
+  // Second pass (v1.4.0): if a continuous-time predicate is supplied,
+  // refine each boundary by bisecting between the bracketing samples.
+  // A boundary at the edge of the timeline has no bracket and is left as-is.
+  return idx.map(([a,b])=>{
+    let start = times[a], end = times[b];
+    if(predicate){
+      if(a > 0)              start = refineTransition(+times[a-1], +times[a], predicate);
+      if(b < times.length-1) end   = refineTransition(+times[b+1], +times[b], predicate);
+    }
+    return {start, end};
+  });
 }
+
+/**
+ * Bisects between a time where access is false and a time where it is true,
+ * locating the transition to ~1 ms. Works for both rise (tFalse < tTrue) and
+ * set (tFalse > tTrue) boundaries; the invariant maintained is simply
+ * predicate(hi)=true, predicate(lo)=false.
+ * Assumes a single crossing within the bracket, which holds for smooth
+ * access geometry at the step sizes this app uses.
+ * @param {number} tFalse_ms Epoch milliseconds where predicate is false.
+ * @param {number} tTrue_ms Epoch milliseconds where predicate is true.
+ * @param {function(number): boolean} predicate Access test at arbitrary epoch ms.
+ * @param {number} [iters=40] Maximum bisection iterations.
+ * @returns {Date} The refined boundary time, on the accessible side.
+ */
+function refineTransition(tFalse_ms, tTrue_ms, predicate, iters=40){
+  let lo = tFalse_ms, hi = tTrue_ms;
+  for(let j=0;j<iters;j++){
+    if(Math.abs(hi - lo) < 1) break; // sub-millisecond bracket: done
+    const mid = 0.5*(lo + hi);
+    if(predicate(mid)) hi = mid; else lo = mid;
+  }
+  return new Date(Math.round(hi));
+}
+
+/**
+ * v1.4.0: Formats a Date as ISO-8601 UTC rounded to the nearest second,
+ * for table display. Refined interval boundaries carry millisecond precision;
+ * durations are computed from the unrounded values.
+ * @param {Date} d The Date to format.
+ * @returns {string} e.g. "2026-02-08T06:28:38Z"
+ */
+function fmtUtcSec(d){ return new Date(Math.round(+d/1000)*1000).toISOString().replace('.000Z','Z'); }
 
 /**
  * Populates the Line-of-Sight data table in the UI.
@@ -1164,7 +1372,7 @@ function fillLOSTable(){
   for(const {start,end} of state.losIntervals){
     const dur = (end - start)/1000;
     const tr=document.createElement('tr');
-    tr.innerHTML = `<td class="mono">${start.toISOString().replace('.000','')}</td><td class="mono">${end.toISOString().replace('.000','')}</td><td class="right mono">${dur.toFixed(0)}</td>`;
+    tr.innerHTML = `<td class="mono">${fmtUtcSec(start)}</td><td class="mono">${fmtUtcSec(end)}</td><td class="right mono">${dur.toFixed(1)}</td>`;
     tb.appendChild(tr);
   }
 }
@@ -1187,7 +1395,7 @@ function fillGSTable() {
         const gsColor = gs === 1 ? '#fff' : 'var(--gs2)';
         const satName = sat === 1 ? 'Sat 1 (blue)' : 'Sat 2 (orange)';
         const satColor = sat === 1 ? 'var(--track1)' : 'var(--track2)';
-        tr.innerHTML = `<td style="color:${gsColor}">${gsName}</td><td style="color:${satColor}">${satName}</td><td class="mono">${start.toISOString().replace('.000', '')}</td><td class="mono">${end.toISOString().replace('.000', '')}</td><td class="right mono">${dur.toFixed(0)}</td>`;
+        tr.innerHTML = `<td style="color:${gsColor}">${gsName}</td><td style="color:${satColor}">${satName}</td><td class="mono">${fmtUtcSec(start)}</td><td class="mono">${fmtUtcSec(end)}</td><td class="right mono">${dur.toFixed(1)}</td>`;
         tb.appendChild(tr);
     }
 }
@@ -1201,14 +1409,14 @@ function exportContactTimes() {
   // Add inter-satellite LOS intervals.
   if (state.losIntervals && state.losIntervals.length > 0) {
     for (const {start, end} of state.losIntervals) {
-      const dur = ((end - start) / 1000).toFixed(0);
+      const dur = ((end - start) / 1000).toFixed(1);
       csv += `inter-satellite,N/A,${start.toISOString()},${end.toISOString()},${dur}\n`;
     }
   }
   // Add ground station access intervals.
   if (state.gsAccessIntervals && state.gsAccessIntervals.length > 0) {
     for (const {sat, start, end} of state.gsAccessIntervals) {
-      const dur = ((end - start) / 1000).toFixed(0);
+      const dur = ((end - start) / 1000).toFixed(1);
       const satName = `Sat ${sat}`;
       csv += `ground-station-1,${satName},${start.toISOString()},${end.toISOString()},${dur}\n`;
     }
@@ -1216,7 +1424,7 @@ function exportContactTimes() {
   // Add ground station 2 access intervals.
   if (state.gs2AccessIntervals && state.gs2AccessIntervals.length > 0) {
     for (const {sat, start, end} of state.gs2AccessIntervals) {
-      const dur = ((end - start) / 1000).toFixed(0);
+      const dur = ((end - start) / 1000).toFixed(1);
       const satName = `Sat ${sat}`;
       csv += `ground-station-2,${satName},${start.toISOString()},${end.toISOString()},${dur}\n`;
     }
@@ -1347,11 +1555,35 @@ function strokeGrid(){
  * @param {string} color The color of the track.
  * @returns {void}
  */
-function drawTrack(lonsDeg, latsDeg, color){
+/**
+ * v1.4.0: Computes the sample-index range of a satellite's track to draw,
+ * based on the Trail (orbits) control. Blank input means the full time span
+ * (the historical 2D behavior). A numeric value N means a trailing window of
+ * N orbital periods of THIS satellite (T = 2*pi/n_bar), ending at the current
+ * index, so mixed LEO/GEO scenarios each get a meaningful window. Display
+ * only: never affects physics, tables, or CSV export.
+ * @param {number} k Current time-sample index.
+ * @param {object} el Parsed satellite elements (uses n_bar).
+ * @returns {{i0:number, i1:number}} Inclusive first/last sample indices.
+ */
+function trailRange(k, el){
+  const nTot = state.times.length;
+  const full = {i0: 0, i1: Math.max(0, nTot - 1)};
+  const raw = ui.trail ? String(ui.trail.value).trim() : '';
+  if(raw === '') return full;                    // blank = full span
+  const orbits = Number(raw);
+  if(!isFinite(orbits) || orbits < 0) return full;
+  const dt = nTot > 1 ? (state.times[1] - state.times[0]) / 1000 : 1;
+  const T = 2 * Math.PI / el.n_bar;              // this satellite's period [s]
+  const steps = Math.ceil(orbits * T / dt);
+  return {i0: Math.max(0, k - steps), i1: k};
+}
+
+function drawTrack(lonsDeg, latsDeg, color, i0 = 0, i1 = lonsDeg.length - 1){
   const W=ui.canvas.width, H=ui.canvas.height; ctx.save();
   ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.beginPath();
-  let started=false; let prevX=null; const n=lonsDeg.length;
-  for(let k=0;k<n;k++){
+  let started=false; let prevX=null;
+  for(let k=i0;k<=i1;k++){
     const lon=wrapLon(r2d(lonsDeg[k])), lat=r2d(latsDeg[k]);
     const [x,y] = lonLatToXY(lon,lat,W,H);
     if(prevX!==null){
@@ -1480,10 +1712,12 @@ function draw(){
   const colorTrack1 = rootStyle.getPropertyValue('--track1');
   const colorTrack2 = rootStyle.getPropertyValue('--track2');
   if (state.el1.visible && state.el1.track_on) {
-    drawTrack(state.lon1, state.lat1, colorTrack1);
+    const R1 = trailRange(state.idx, state.el1);
+    drawTrack(state.lon1, state.lat1, colorTrack1, R1.i0, R1.i1);
   }
   if (state.el2.visible && state.el2.track_on) {
-    drawTrack(state.lon2, state.lat2, colorTrack2);
+    const R2 = trailRange(state.idx, state.el2);
+    drawTrack(state.lon2, state.lat2, colorTrack2, R2.i0, R2.i1);
   }
 
   // LOS link (2D)
@@ -1749,8 +1983,8 @@ ui.canvas.addEventListener('mouseenter', ()=>{ ui.coord.style.display='inline-fl
  * @returns {void}
  */
 function updateControlStates() {
-    const s1_vis = ui.s1.visible.value === '1';
-    const s2_vis = ui.s2.visible.value === '1';
+    const s1_vis = ui.s1.visible.checked;
+    const s2_vis = ui.s2.visible.checked;
 
     ui.s1.track_on.disabled = !s1_vis;
     ui.s1.fov_on.disabled = !s1_vis;
@@ -2099,9 +2333,11 @@ function drawGlobe(){ if(!state.gl.init) initGlobe(); if(!state.gl.init) return;
     }
   }
 
-  // Determine subset of track to draw as a trail.
-  const p = readElements(); const trailMin = +ui.trail?.value || 30; const steps = Math.floor(trailMin*60/p.dt);
-  const k = state.idx; const i0 = Math.max(0, k - steps); const n1 = k - i0 + 1;
+  // v1.4.0: per-satellite trail windows in orbits (blank = full span).
+  // Also removes a readElements() DOM parse that ran every frame here.
+  const k = state.idx;
+  const R1_3d = trailRange(k, state.el1);
+  const R2_3d = trailRange(k, state.el2);
 
   if(state.gl.trk1 && (!state.gl._trkInit)){ updateTrackBuffers(); state.gl._trkInit=true; }
 
@@ -2115,7 +2351,7 @@ function drawGlobe(){ if(!state.gl.init) initGlobe(); if(!state.gl.init) return;
   if (state.el1.visible) {
     if (state.el1.track_on) {
         const track_buf = useInert ? state.gl.bufs.trk1 : state.gl.bufs.trk1_ecef;
-        drawLine(track_buf, i0, n1, colorTrack1_rgb, false, 0, VP);
+        drawLine(track_buf, R1_3d.i0, R1_3d.i1 - R1_3d.i0 + 1, colorTrack1_rgb, false, 0, VP);
     }
     const r1_vec = useInert ? state.r1[k] : state.r1ecef[k];
     const spacePts1 = new Float32Array([ r1_vec[0]/RE, r1_vec[1]/RE, r1_vec[2]/RE ]);
@@ -2130,7 +2366,7 @@ function drawGlobe(){ if(!state.gl.init) initGlobe(); if(!state.gl.init) return;
   if (state.el2.visible) {
     if (state.el2.track_on) {
         const track_buf = useInert ? state.gl.bufs.trk2 : state.gl.bufs.trk2_ecef;
-        drawLine(track_buf, i0, n1, colorTrack2_rgb, false, 0, VP);
+        drawLine(track_buf, R2_3d.i0, R2_3d.i1 - R2_3d.i0 + 1, colorTrack2_rgb, false, 0, VP);
     }
     const r2_vec = useInert ? state.r2[k] : state.r2ecef[k];
     const spacePts2 = new Float32Array([ r2_vec[0]/RE, r2_vec[1]/RE, r2_vec[2]/RE ]);
@@ -2296,19 +2532,62 @@ function setProjection(mode){
 }
 if(ui.projection){ ui.projection.addEventListener('change', ()=> setProjection(ui.projection.value)); }
 
-// Camera controls
-let dragging=false, lastX=0, lastY=0;
-ui.globe.addEventListener('mousedown', (e)=>{ if(state.gl.focus!=='none') return; dragging=true; lastX=e.clientX; lastY=e.clientY; });
-window.addEventListener('mouseup', ()=> dragging=false);
-window.addEventListener('mousemove', (e)=>{ if(!dragging) return; const dx=e.clientX-lastX, dy=e.clientY-lastY; lastX=e.clientX; lastY=e.clientY;
-  state.gl.yaw -= dx*0.005;
-  state.gl.pitch += dy*0.005;
-  state.gl.pitch=Math.max(-1.2, Math.min(1.2, state.gl.pitch)); // Clamp pitch to avoid gimbal lock
-  draw(); });
-ui.globe.addEventListener('wheel', (e)=>{ e.preventDefault(); const f=Math.exp(-e.deltaY*0.001); state.gl.dist = Math.max(1.3, Math.min(Math.max(24.0, (state.gl.maxR||1)*3.0), state.gl.dist*f)); draw(); }, {passive:false});
+// Camera controls (v1.4.0: Pointer Events unify mouse, touch, and pen input.
+// One active pointer rotates the camera; two active pointers pinch-zoom.
+// Rotation is disabled while the camera follows a satellite, matching the old
+// mousedown guard; zoom remains available there, matching the old wheel behavior.
+// The #globe CSS sets touch-action:none so the browser does not claim these
+// gestures for page scrolling or page zoom.)
+const camPointers = new Map(); // pointerId -> {x, y}
+let lastX=0, lastY=0, pinchDist=0;
+
+function camPinchDistance(){
+  const pts = [...camPointers.values()];
+  return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+}
+function camApplyZoom(f){
+  state.gl.dist = Math.max(1.3, Math.min(Math.max(24.0, (state.gl.maxR||1)*3.0), state.gl.dist*f));
+}
+
+ui.globe.addEventListener('pointerdown', (e)=>{
+  ui.globe.setPointerCapture(e.pointerId);
+  camPointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(camPointers.size === 1){ lastX = e.clientX; lastY = e.clientY; }
+  else if(camPointers.size === 2){ pinchDist = camPinchDistance(); }
+});
+ui.globe.addEventListener('pointermove', (e)=>{
+  if(!camPointers.has(e.pointerId)) return;
+  camPointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(camPointers.size === 1){
+    if(state.gl.focus !== 'none') return; // rotation locked while following a satellite
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    state.gl.yaw -= dx*0.005;
+    state.gl.pitch += dy*0.005;
+    state.gl.pitch = Math.max(-1.2, Math.min(1.2, state.gl.pitch)); // Clamp pitch to avoid gimbal lock
+    draw();
+  } else if(camPointers.size === 2){
+    // Pinch: fingers spreading apart (distance grows) zooms in (camera dist shrinks).
+    const d = camPinchDistance();
+    if(pinchDist > 0 && d > 0){ camApplyZoom(pinchDist / d); }
+    pinchDist = d;
+    draw();
+  }
+});
+function camReleasePointer(e){
+  camPointers.delete(e.pointerId);
+  if(camPointers.size === 1){
+    // Re-anchor rotation to the surviving pointer so the view does not jump.
+    const p = [...camPointers.values()][0];
+    lastX = p.x; lastY = p.y;
+  }
+  pinchDist = camPointers.size === 2 ? camPinchDistance() : 0;
+}
+ui.globe.addEventListener('pointerup', camReleasePointer);
+ui.globe.addEventListener('pointercancel', camReleasePointer);
+ui.globe.addEventListener('wheel', (e)=>{ e.preventDefault(); const f=Math.exp(-e.deltaY*0.001); camApplyZoom(f); draw(); }, {passive:false});
 ui.btnCamReset.addEventListener('click', ()=>{ state.gl.yaw=0; state.gl.pitch=0.25; state.gl.maxR = computeMaxOrbitRadius(); state.gl.dist = computeFitDistR((state.gl.maxR||1)*1.05); draw(); });
 ui.chkTerm.addEventListener('change', ()=>{ state.gl.showTerm = ui.chkTerm.checked; draw(); });
-ui.mapStyle.addEventListener('change', ()=>{ state.gl.mapStyle = ui.mapStyle.value; draw(); });
 ui.chkInertial?.addEventListener('change', ()=>{ recompute(); draw(); });
 ui.chkGrid && ui.chkGrid.addEventListener('change', ()=>{ draw(); });
 if(ui.focusSel){
@@ -2330,6 +2609,7 @@ if (ui.chkElements) {
     });
 }
 ui.trail.addEventListener('change', ()=> draw());
+ui.trail.addEventListener('input', ()=> draw());
 
 // --- TLE Import Functions ---
 /**
@@ -2452,6 +2732,22 @@ function parseTLE(tleText) {
 }
 
 /**
+ * v1.4.0: Shows an inline message in a satellite's TLE panel, replacing the
+ * old alert()/confirm() dialogs. Lives outside .tle-content so it remains
+ * visible when the section collapses after a successful apply.
+ * @param {number} satNum Satellite number (1 or 2).
+ * @param {string} text Message text; empty string clears the message.
+ * @param {string} kind Message style: 'err' or 'warn'.
+ * @returns {void}
+ */
+function setTleMsg(satNum, text, kind){
+  const box = document.getElementById('tle-msg-' + satNum);
+  if(!box) return;
+  box.textContent = text;
+  box.className = 'tle-msg' + (text ? ' ' + kind : '');
+}
+
+/**
  * Applies a TLE to a satellite's orbital elements.
  * @param {number} satNum - Satellite number (1 or 2)
  */
@@ -2460,44 +2756,45 @@ function applyTLE(satNum) {
   const syncCheckbox = document.getElementById('tle-sync-epoch-' + satNum);
   
   if (!textarea) return;
+  setTleMsg(satNum, '', 'err'); // clear any stale message
   
   const tleText = textarea.value.trim();
   if (!tleText) {
-    alert('Please paste a TLE into the text area.');
+    setTleMsg(satNum, 'Paste a TLE into the text area first.', 'err');
     return;
   }
   
   const result = parseTLE(tleText);
   
   if (result.error) {
-    alert('Invalid TLE: ' + result.error);
+    setTleMsg(satNum, 'Invalid TLE: ' + result.error, 'err');
     return;
   }
   
-  // Check for epoch mismatch if sync is unchecked
+  // v1.4.0: Elements are anchored at the TLE's own epoch and propagated
+  // (with J2 secular rates) to the simulation timeline, so an epoch mismatch
+  // is handled correctly and no confirmation is required. A non-blocking
+  // inline note appears when the gap is large enough that the J2-only model
+  // itself becomes the accuracy limit (no drag, no higher-order terms).
   const syncEnabled = syncCheckbox && syncCheckbox.checked;
   if (!syncEnabled && ui.sim_epoch) {
     const simEpoch = parseIsoUtc(ui.sim_epoch.value);
     if (simEpoch) {
-      const diffMs = Math.abs(result.epoch.getTime() - simEpoch.getTime());
-      const diffDays = diffMs / 86400000;
-      if (diffDays > 1) {
-        const tleEpochStr = result.epoch.toISOString().replace('.000Z', 'Z');
-        const simEpochStr = simEpoch.toISOString().replace('.000Z', 'Z');
-        const proceed = confirm(
-          'Warning: This TLE\'s epoch (' + tleEpochStr + ') differs from the ' +
-          'simulation epoch (' + simEpochStr + ') by ' + diffDays.toFixed(1) + ' days.\n\n' +
-          'Orbital elements (especially position) may not be accurate at the ' +
-          'simulation start time due to J2 precession and orbital motion.\n\n' +
-          'Proceed anyway?'
-        );
-        if (!proceed) return;
+      const diffDays = Math.abs(result.epoch.getTime() - simEpoch.getTime()) / 86400000;
+      if (diffDays > 7) {
+        setTleMsg(satNum, 'Note: this TLE\'s epoch differs from the simulation epoch by ' +
+          diffDays.toFixed(1) + ' days. Elements are propagated from the TLE epoch, but over ' +
+          'gaps this large the J2-only model (no drag, no higher-order terms) loses accuracy, ' +
+          'especially for low orbits.', 'warn');
       }
     }
   }
   
   // Get the UI elements for this satellite
   const sat = satNum === 1 ? ui.s1 : ui.s2;
+  
+  // v1.4.0: Anchor this satellite's elements at the TLE epoch.
+  if (satNum === 1) state.satEpoch1 = result.epoch; else state.satEpoch2 = result.epoch;
   
   // Populate the orbital elements
   sat.a.value = result.a.toFixed(3);
@@ -2512,10 +2809,11 @@ function applyTLE(satNum) {
     ui.sim_epoch.value = result.epoch.toISOString().replace('.000Z', 'Z');
   }
   
-  // Update scenario dropdown to "Custom"
-  if (ui.scenarioSel) {
-    ui.scenarioSel.value = 'custom';
-  }
+  // Update scenario dropdown to "Custom".
+  // (Bug fix: this previously referenced ui.scenarioSel, which was never
+  // defined, so the dropdown silently failed to flip after a TLE import.)
+  const scenSel = document.getElementById('scenarioSelect');
+  if (scenSel) scenSel.value = 'custom';
   
   // Show the TLE epoch in the info display
   const epochDisplay = document.getElementById('tle-epoch-display-' + satNum);
@@ -2668,7 +2966,7 @@ setProjection('2d');
 window.addEventListener('error', function(e){ try { document.getElementById('status').textContent = 'Error: ' + e.message; } catch(_){} });
 </script>
 <footer>
-  <p>Copyright © 2025 Paul Henkiel. All rights reserved. Licensed under the MIT License.</p>
+  <p>Copyright © 2025-2026 Paul Henkiel. Licensed under the MIT License.</p>
 </footer>
 
 </body></html>
